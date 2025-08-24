@@ -18,14 +18,7 @@ import { CommonModule } from '@angular/common';
         <ng-content></ng-content>
       </div>
 
-      <div class="flex justify-end gap-2 mt-6">
-        <button class="px-3 py-2 rounded-xl border" (click)="close.emit()">Cancelar</button>
-        <button class="px-3 py-2 rounded-xl bg-sky-600 text-white disabled:opacity-60"
-                [disabled]="confirmDisabled"
-                (click)="confirm.emit()">
-          {{ confirmText }}
-        </button>
-      </div>
+      
     </div>
   </div>
   `
@@ -33,7 +26,6 @@ import { CommonModule } from '@angular/common';
 export class ModalComponent {
   @Input() open = false;
   @Input() title = '';
-  @Input() confirmText = 'Aceptar';
   @Input() confirmDisabled = false;
   @Output() close = new EventEmitter<void>();
   @Output() confirm = new EventEmitter<void>();

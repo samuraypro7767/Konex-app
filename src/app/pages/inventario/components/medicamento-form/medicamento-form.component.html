@@ -10,9 +10,18 @@
     </div>
 
     <div class="md:col-span-2">
-      <label class="text-sm text-gray-500">Laboratorio (ID)</label>
-      <input type="number" class="w-full rounded-xl border px-3 py-2" formControlName="laboratorioId" />
-    </div>
+      <label class="text-sm text-gray-500">Laboratorio</label>
+<select class="w-full rounded-xl border px-3 py-2" formControlName="laboratorioId">
+  <option [ngValue]="null" disabled>Seleccione un laboratorio…</option>
+  <option *ngFor="let lab of labs; trackBy: trackLab" [ngValue]="lab.id">
+    {{ lab.id }} — {{ lab.nombre }}
+  </option>
+</select>
+</div>
+<div class="text-xs text-red-600 mt-1" *ngIf="form.controls.laboratorioId.hasError('labNotAllowed') && form.controls.laboratorioId.touched">
+  El laboratorio debe ser 1, 2 o 3.
+</div>
+
 
     <div>
       <label class="text-sm text-gray-500">Fecha de Fabricación</label>

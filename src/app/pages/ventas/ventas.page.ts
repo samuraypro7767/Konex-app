@@ -59,6 +59,7 @@ export class VentasPage implements OnInit {
 
   ngOnInit(): void {
     this.cargarTodas();
+
   }
 
   private cargarTodas() {

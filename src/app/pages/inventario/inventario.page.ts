@@ -1,9 +1,12 @@
 import { Component, OnInit, Input, inject, signal, computed } from '@angular/core';
 import { CommonModule, NgIf, NgFor } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
+import { map } from 'rxjs/operators';
+import Swal from 'sweetalert2';
 
 import { MedicamentosService } from '../../core/services/medicamentos.service';
 import { VentasService } from '../../core/services/ventas.service';
+
 import {
   MedicamentoRequest,
   MedicamentoResponse,
@@ -39,20 +42,33 @@ export class InventarioPage implements OnInit {
   private meds = inject(MedicamentosService);
   private ventas = inject(VentasService);
 
+  // Toast reutilizable
+  private Toast = Swal.mixin({
+    toast: true,
+    position: 'top-end',
+    showConfirmButton: false,
+    timer: 2500,
+    timerProgressBar: true,
+    didOpen: (t) => {
+      t.addEventListener('mouseenter', Swal.stopTimer);
+      t.addEventListener('mouseleave', Swal.resumeTimer);
+    }
+  });
+
   // estado general
   loading = signal(false);
   pageIndex = signal(0);
   pageSize  = signal(10);
   filtroNombre = signal('');
 
-  // datos
+  // datos inventario
   data = signal<Page<MedicamentoResponse> | null>(null);
 
   // filas para *ngFor
   rows = computed<MedicamentoResponse[]>(() => this.data()?.content ?? []);
   trackRow = (_: number, m: MedicamentoResponse) => m?.id ?? _;
 
-  // métricas
+  // métricas inventario
   totalMedicamentos = computed(() => this.data()?.totalElements ?? 0);
   stockTotal = computed(() =>
     (this.data()?.content ?? []).reduce((acc, m) => acc + (m.cantidadStock ?? 0), 0)
@@ -60,6 +76,10 @@ export class InventarioPage implements OnInit {
   stockBajo = computed(() =>
     (this.data()?.content ?? []).filter(m => (m.cantidadStock ?? 0) < 10).length
   );
+
+  // MÉTRICA: Ingresos del mes
+  ingresosMes = signal<number | null>(null);
+  mesActual = new Intl.DateTimeFormat('es-CO', { month: 'long', year: 'numeric' }).format(new Date());
 
   // “hoy” normalizado
   today = new Date();
@@ -86,7 +106,10 @@ export class InventarioPage implements OnInit {
   });
 
   // ----------------- ciclo de vida -----------------
-  ngOnInit(): void { this.load(); }
+  ngOnInit(): void {
+    this.load();
+    this.loadIngresosMes(); // calcular ingresos del mes al iniciar
+  }
 
   // ----------------- carga/paginación/filtros -----------------
   load() {
@@ -137,14 +160,74 @@ export class InventarioPage implements OnInit {
     this.showForm.set(true);
   }
 
+  // Crear / Editar con SweetAlert2
   onGuardar(req: MedicamentoRequest) {
+    const esEdicion = !!this.editando;
     const obs = this.editando ? this.meds.actualizar(this.editando.id, req) : this.meds.crear(req);
-    obs.subscribe({ next: () => { this.showForm.set(false); this.load(); } });
+
+    Swal.fire({
+      title: esEdicion ? 'Actualizando...' : 'Creando...',
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading(),
+    });
+
+    obs.subscribe({
+      next: () => {
+        Swal.close();
+        this.showForm.set(false);
+        this.load();
+        this.Toast.fire({
+          icon: 'success',
+          title: esEdicion ? 'Medicamento actualizado' : 'Medicamento creado'
+        });
+      },
+      error: (err) => {
+        Swal.close();
+        Swal.fire({
+          icon: 'error',
+          title: esEdicion ? 'Error al actualizar' : 'Error al crear',
+          text: err?.error?.message ?? 'Intenta nuevamente.',
+        });
+      }
+    });
   }
 
+  // Eliminar con confirmación SweetAlert2
   eliminar(m: MedicamentoResponse) {
-    if (!confirm(`¿Eliminar "${m.nombre}"?`)) return;
-    this.meds.eliminar(m.id).subscribe({ next: () => this.load() });
+    Swal.fire({
+      title: `¿Eliminar "${m.nombre}"?`,
+      text: 'Esta acción no se puede deshacer.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar',
+      reverseButtons: true,
+      confirmButtonColor: '#dc2626',
+    }).then(result => {
+      if (!result.isConfirmed) return;
+
+      Swal.fire({
+        title: 'Eliminando...',
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading(),
+      });
+
+      this.meds.eliminar(m.id).subscribe({
+        next: () => {
+          Swal.close();
+          this.Toast.fire({ icon: 'success', title: 'Medicamento eliminado' });
+          this.load();
+        },
+        error: (err) => {
+          Swal.close();
+          Swal.fire({
+            icon: 'error',
+            title: 'No se pudo eliminar',
+            text: err?.error?.message ?? 'Intenta nuevamente.',
+          });
+        }
+      });
+    });
   }
 
   // ----------------- Vender -----------------
@@ -159,18 +242,86 @@ export class InventarioPage implements OnInit {
     if (!this.seleccionado) return;
     const cantidad = cantidadFromChild ?? this.venderForm.value.cantidad ?? 1;
     this.meds.cotizar(this.seleccionado.id, cantidad).subscribe({
-      next: (res) => this.cotizacion = res
+      next: (res) => this.cotizacion = res,
+      error: () => {
+        this.cotizacion = null;
+        this.Toast.fire({ icon: 'warning', title: 'No se pudo cotizar, usando precio unitario' });
+      }
     });
   }
 
+  // Compra con SweetAlert2 (loading + resumen)
   confirmarVenta(cantidadFromChild?: number) {
     if (!this.seleccionado) return;
     const cantidad = cantidadFromChild ?? this.venderForm.value.cantidad ?? 1;
+
+    Swal.fire({
+      title: 'Procesando venta...',
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading(),
+    });
+
     this.vendiendo.set(true);
     this.ventas.crear({ medicamentoId: this.seleccionado.id, cantidad }).subscribe({
-      next: () => { this.vendiendo.set(false); this.showVender.set(false); this.load(); },
-      error: () => this.vendiendo.set(false)
+      next: () => {
+        this.vendiendo.set(false);
+        this.showVender.set(false);
+        this.load();
+        this.loadIngresosMes();
+
+        Swal.close();
+        const unit = Number(this.seleccionado?.valorUnitario ?? 0);
+        const total = Number(this.cotizacion?.valorTotal ?? (unit * Number(cantidad)));
+        const money = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP' }).format(total);
+
+        Swal.fire({
+          icon: 'success',
+          title: '¡Compra exitosa!',
+          html: `
+            <div class="text-left">
+              <div><b>Medicamento:</b> ${this.seleccionado?.nombre}</div>
+              <div><b>Cantidad:</b> ${cantidad}</div>
+              <div><b>Total:</b> ${money}</div>
+            </div>
+          `,
+          confirmButtonText: 'Aceptar'
+        });
+      },
+      error: (err) => {
+        this.vendiendo.set(false);
+        Swal.close();
+        Swal.fire({
+          icon: 'error',
+          title: 'No se pudo completar la venta',
+          text: err?.error?.message ?? 'Intenta nuevamente.',
+        });
+      }
     });
+  }
+
+  // ----------------- Ingresos del Mes -----------------
+  private fmtISO(d: Date): string {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
+  loadIngresosMes() {
+    const hoy = new Date();
+    const desde = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+    const hasta = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0);
+
+    this.ventas.listarPorRango(this.fmtISO(desde), this.fmtISO(hasta))
+      .pipe(
+        map((list: Array<{ valorTotal?: number | string }>) =>
+          list?.reduce((acc, v) => acc + Number(v.valorTotal ?? 0), 0) ?? 0
+        )
+      )
+      .subscribe({
+        next: total => this.ingresosMes.set(total),
+        error: () => this.ingresosMes.set(0),
+      });
   }
 
   // ----------------- Helpers de fecha y estado -----------------

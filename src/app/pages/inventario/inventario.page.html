@@ -14,7 +14,7 @@
 
   <!-- Métricas -->
   <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-    <app-card-metric [label]="'Total Medicamentos'" [value]="totalMedicamentos()">
+    <app-card-metric [label]="'Medicamentos Almacenados'" hint="Total Medicamentos" [value]="totalMedicamentos()">
       <span metric-icon>
         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h16v2H4zM4 11h16v2H4zM4 18h16v2H4z"/></svg>
       </span>
@@ -31,12 +31,17 @@
         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
       </span>
     </app-card-metric>
+<app-card-metric
+  [label]="'Ingresos del Mes'"
+  [value]="ingresosMes() === null ? '—' : (ingresosMes() | currencyCol)"
+  [hint]="'mes actual'">
+  <span metric-icon>
+    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 1l3 5h-6l3-5zM3 13h18v8H3z"/>
+    </svg>
+  </span>
+</app-card-metric>
 
-    <app-card-metric [label]="'Ingresos del Mes'" [value]="'—'">
-      <span metric-icon>
-        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1l3 5h-6l3-5zM3 13h18v8H3z"/></svg>
-      </span>
-    </app-card-metric>
   </div>
 
   <!-- Filtros -->
@@ -177,8 +182,6 @@
   <!-- MODAL CREAR/EDITAR -->
   <app-modal
     [open]="showForm()"
-    [title]="editando ? 'Editar Medicamento' : 'Nuevo Medicamento'"
-    [confirmText]="editando ? 'Actualizar' : 'Crear'"
     [confirmDisabled]="false"
     (close)="showForm.set(false)"
     (confirm)="0">

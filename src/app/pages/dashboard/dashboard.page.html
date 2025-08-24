@@ -19,9 +19,58 @@
       class="px-4 py-2 rounded-xl bg-sky-600 text-white shadow hover:bg-sky-700">
       + Agregar Medicamento
     </button>
-    <button class="relative">
-      <span class="material-icons text-gray-600">notifications_none</span>
-    </button>
+
+    <!-- Campana -->
+    <div class="relative" (click)="$event.stopPropagation()">
+      <button
+        class="relative p-1 rounded-lg hover:bg-gray-100"
+        aria-label="Notificaciones"
+        (click)="toggleNotifs($event)">
+        <span class="material-icons text-gray-700">
+          {{ showNotif() ? 'notifications' : 'notifications_none' }}
+        </span>
+
+        <!-- Punto rojo si hay 'unread' y el panel NO está abierto -->
+        <span
+          *ngIf="unread() > 0 && !showNotif()"
+          class="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 bg-red-500 rounded-full ring-2 ring-white">
+        </span>
+      </button>
+
+      <!-- Dropdown de notificaciones -->
+      <div
+        *ngIf="showNotif()"
+        class="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-lg border z-50"
+        (click)="$event.stopPropagation()">
+
+        <div class="p-3 border-b font-semibold">Notificaciones</div>
+
+        <ul class="max-h-80 overflow-auto divide-y">
+          <li
+            *ngFor="let n of notifs(); trackBy: trackNotif"
+            class="p-3 flex gap-3">
+            <span
+              class="material-icons text-sm mt-0.5"
+              [ngClass]="{
+                'text-red-500': n.type === 'danger',
+                'text-amber-500': n.type === 'warning',
+                'text-sky-600': n.type === 'info'
+              }">
+              {{ n.type === 'danger' ? 'error' : (n.type === 'warning' ? 'warning' : 'info') }}
+            </span>
+            <div class="text-sm">
+              <div class="font-medium">{{ n.title }}</div>
+              <div class="text-gray-500" *ngIf="n.detail">{{ n.detail }}</div>
+              <div class="text-xs text-gray-400 mt-1">{{ n.createdAt | date:'short' }}</div>
+            </div>
+          </li>
+
+          <li *ngIf="notifs().length === 0" class="p-6 text-center text-gray-500">
+            Sin alertas
+          </li>
+        </ul>
+      </div>
+    </div>
   </div>
 </header>
 
@@ -36,8 +85,6 @@
       Inventario y ventas de medicamentos para droguerías
     </p>
   </div>
-
-
 
   <!-- Tabs -->
   <div class="flex w-full justify-center">

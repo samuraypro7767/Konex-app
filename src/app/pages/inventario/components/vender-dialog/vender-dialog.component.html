@@ -1,40 +1,81 @@
 <div *ngIf="open" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-  <div class="bg-white rounded-2xl w-full max-w-xl p-6 space-y-4">
-    <div class="text-xl font-bold">Vender Medicamento</div>
+  <div class="bg-white rounded-2xl w-full max-w-xl p-6 space-y-5 shadow-xl">
 
-    <div class="rounded-xl border p-4">
-      <div class="font-semibold">{{ seleccionado?.nombre }}</div>
-      <div class="text-sm text-gray-500">Laboratorio: {{ seleccionado?.laboratorioNombre }}</div>
-      <div class="text-sm">Precio unitario: ${{ seleccionado?.valorUnitario }}</div>
-      <div class="text-sm">Stock disponible: {{ seleccionado?.cantidadStock }}</div>
-    </div>
-
-    <div class="space-y-2">
-      <label class="text-sm text-gray-500">Cantidad a vender</label>
-      <div class="flex gap-2">
-        <input type="number" min="1" class="w-full rounded-xl border px-3 py-2"
-               formControlName="cantidad"
-               [formGroup]="form"
-               (input)="onCotizar()">
-      </div>
-
-      <div class="rounded-xl bg-sky-600 text-white p-4 flex items-center justify-between">
-        <div>
-          <div class="text-sm opacity-90">Total a pagar:</div>
-          <div class="text-xl font-bold">
-            ${{ cotizacion?.valorTotal ?? (seleccionado?.valorUnitario || 0) * (form.value.cantidad || 1) }}
-          </div>
-          <div class="text-xs opacity-80">
-            {{ form.value.cantidad || 1 }} x ${{ seleccionado?.valorUnitario }}
-          </div>
+    <!-- header -->
+    <div class="flex items-start justify-between">
+      <div>
+        <div class="text-xl font-bold flex items-center  gap-2">
+          <svg class="w-5 h-5 text-sky-600 " viewBox="0 0 24 24" fill="currentColor">
+            <path d="M2 4h2l3.6 7.59a2 2 0 001.8 1.16H17a2 2 0 001.94-1.5L21 6H6"/>
+          </svg>
+          Vender Medicamento
         </div>
+        <div class="text-xs text-gray-500">Complete la información de la venta</div>
+      </div>
+      <button class="text-gray-500 hover:text-gray-700" (click)="cerrar.emit()">✕</button>
+    </div>
+
+    <!-- producto -->
+    <div class="rounded-2xl border p-4 space-y-1">
+      <div class="text-lg font-semibold">{{ seleccionado?.nombre }}</div>
+      <div class="text-sm text-gray-500">Laboratorio: {{ seleccionado?.laboratorioNombre }}</div>
+      <div class="flex items-center justify-between text-sm mt-1">
+        <div>Precio unitario:</div><div class="font-semibold">${{ seleccionado?.valorUnitario }}</div>
+      </div>
+      <div class="flex items-center justify-between text-sm">
+        <div>Stock disponible:</div>
+        <div class="font-semibold">{{ maxVendible }} <span class="text-gray-500">unidades</span></div>
       </div>
     </div>
 
+    <!-- cantidad -->
+    <form [formGroup]="form" class="space-y-3">
+      <label class="text-sm text-gray-600">Cantidad a vender</label>
+
+      <div class="flex items-center gap-2">
+        <button type="button" class="px-3 py-2 rounded-xl border hover:bg-gray-50" (click)="dec()">−</button>
+
+        <input type="number"
+               class="w-24 text-center rounded-xl border px-3 py-2"
+               formControlName="cantidad"
+               min="1"
+               [attr.max]="maxVendible || null"
+               (input)="onCotizar()"
+               (blur)="onCotizar()">
+
+        <button type="button" class="px-3 py-2 rounded-xl border hover:bg-gray-50" (click)="inc()">+</button>
+      </div>
+
+      <!-- ✅ errores -->
+      <div class="text-xs text-red-600" *ngIf="form.controls.cantidad.hasError('required')">
+        Ingrese una cantidad.
+      </div>
+      <div class="text-xs text-red-600" *ngIf="form.controls.cantidad.hasError('min')">
+        La cantidad mínima es 1.
+      </div>
+      <div class="text-xs text-red-600" *ngIf="form.controls.cantidad.hasError('max')">
+        No hay stock suficiente. Máximo {{ maxVendible }} unidades.
+      </div>
+      <div class="text-xs text-red-600" *ngIf="maxVendible === 0">
+        medicamento agotado.
+      </div>
+    </form>
+
+    <!-- total -->
+    <div class="rounded-2xl p-4 text-white" style="background: linear-gradient(90deg, #0056a3, #06b6d4);">
+      <div class="flex items-center gap-2 text-sm opacity-90">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M3 4h18v2H3zM3 9h18v2H3zM3 14h18v2H3zM3 19h18v2H3z"/></svg>
+        Total a pagar:
+      </div>
+      <div class="text-xl font-extrabold mt-1">${{ totalMostrar }}</div>
+      <div class="text-xs opacity-90">{{ form.value.cantidad || 1 }} × ${{ seleccionado?.valorUnitario }}</div>
+    </div>
+
+    <!-- acciones -->
     <div class="flex justify-end gap-2">
       <button class="px-3 py-2 rounded-xl border" (click)="cerrar.emit()">Cancelar</button>
       <button class="px-3 py-2 rounded-xl bg-sky-600 text-white disabled:opacity-60"
-              [disabled]="loading"
+              [disabled]="loading || maxVendible === 0 || form.invalid"
               (click)="onConfirmar()">
         {{ loading ? 'Procesando...' : 'Confirmar Venta' }}
       </button>
