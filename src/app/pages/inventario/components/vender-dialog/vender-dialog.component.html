@@ -1,103 +1,84 @@
-<p-dialog
-  [(visible)]="open"
-  [modal]="true"
-  [closable]="false"
-  [draggable]="false"
-  [resizable]="false"
-  [style]="{ width: '34rem' }"
-  (onHide)="cerrar.emit()"
->
-  <!-- ======= Header ======= -->
-  <ng-template pTemplate="header">
-    <div class="flex items-center gap-2">
-      <i class="pi pi-shopping-cart text-sky-600"></i>
-      <span class="font-bold">Vender Medicamento</span>
-    </div>
-  </ng-template>
+<div *ngIf="open" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+  <div class="bg-white rounded-2xl w-full max-w-xl p-6 space-y-5 shadow-xl">
 
-  <!-- ======= Contenido ======= -->
-  <div class="space-y-4">
-    <!-- Producto -->
+    <!-- header -->
+    <div class="flex items-start justify-between">
+      <div>
+        <div class="text-xl font-bold flex items-center  gap-2">
+          <svg class="w-5 h-5 text-sky-600 " viewBox="0 0 24 24" fill="currentColor">
+            <path d="M2 4h2l3.6 7.59a2 2 0 001.8 1.16H17a2 2 0 001.94-1.5L21 6H6"/>
+          </svg>
+          Vender Medicamento
+        </div>
+        <div class="text-xs text-gray-500">Complete la información de la venta</div>
+      </div>
+      <button class="text-gray-500 hover:text-gray-700" (click)="cerrar.emit()">✕</button>
+    </div>
+
+    <!-- producto -->
     <div class="rounded-2xl border p-4 space-y-1">
       <div class="text-lg font-semibold">{{ seleccionado?.nombre }}</div>
       <div class="text-sm text-gray-500">Laboratorio: {{ seleccionado?.laboratorioNombre }}</div>
-
       <div class="flex items-center justify-between text-sm mt-1">
-        <div>Precio unitario:</div>
-        <div class="font-semibold">{{ seleccionado?.valorUnitario | number:'1.0-0' }}</div>
+        <div>Precio unitario:</div><div class="font-semibold">${{ seleccionado?.valorUnitario }}</div>
       </div>
-
       <div class="flex items-center justify-between text-sm">
         <div>Stock disponible:</div>
-        <div class="font-semibold">
-          {{ maxVendible }} <span class="text-gray-500">unidades</span>
-        </div>
+        <div class="font-semibold">{{ maxVendible }} <span class="text-gray-500">unidades</span></div>
       </div>
     </div>
 
-    <!-- Cantidad -->
+    <!-- cantidad -->
     <form [formGroup]="form" class="space-y-3">
       <label class="text-sm text-gray-600">Cantidad a vender</label>
 
       <div class="flex items-center gap-2">
-        <button
-          type="button"
-          pButton
-          icon="pi pi-minus"
-          [text]="true"
-          (click)="dec()"
-          aria-label="Disminuir cantidad">
-        </button>
+        <button type="button" class="px-3 py-2 rounded-xl border hover:bg-gray-50" (click)="dec()">−</button>
 
-        <p-inputNumber
-          formControlName="cantidad"
-          [min]="1"
-          [max]="maxVendible" 
-          [showButtons]="false"
-          inputStyleClass="text-center w-24"
-          (onInput)="onCotizar()"
-          (onBlur)="onCotizar()"
-          ariaLabel="Cantidad a vender">
-        </p-inputNumber>
+        <input type="number"
+               class="w-24 text-center rounded-xl border px-3 py-2"
+               formControlName="cantidad"
+               min="1"
+               [attr.max]="maxVendible || null"
+               (input)="onCotizar()"
+               (blur)="onCotizar()">
 
-        <button
-          type="button"
-          pButton
-          icon="pi pi-plus"
-          [text]="true"
-          (click)="inc()"
-          aria-label="Aumentar cantidad">
-        </button>
+        <button type="button" class="px-3 py-2 rounded-xl border hover:bg-gray-50" (click)="inc()">+</button>
       </div>
 
-      <!-- Mensajes -->
-      <p-message *ngIf="form.controls.cantidad.hasError('required')" severity="error" text="Ingrese una cantidad."></p-message>
-      <p-message *ngIf="form.controls.cantidad.hasError('min')" severity="error" text="La cantidad mínima es 1."></p-message>
-      <p-message *ngIf="form.controls.cantidad.hasError('max')" severity="warn" text="No hay stock suficiente."></p-message>
-      <p-message *ngIf="maxVendible === 0" severity="error" text="Medicamento agotado."></p-message>
-
-      <!-- Total -->
-      <div class="rounded-2xl p-4 text-white" style="background: linear-gradient(90deg, #0056a3, #06b6d4);">
-        <div class="text-sm opacity-90">Total a pagar:</div>
-        <div class="text-xl font-extrabold mt-1">{{ totalMostrar | number:'1.0-0' }}</div>
-        <div class="text-xs opacity-90">
-          {{ form.value.cantidad || 1 }} × {{ seleccionado?.valorUnitario | number:'1.0-0' }}
-        </div>
+      <!-- ✅ errores -->
+      <div class="text-xs text-red-600" *ngIf="form.controls.cantidad.hasError('required')">
+        Ingrese una cantidad.
+      </div>
+      <div class="text-xs text-red-600" *ngIf="form.controls.cantidad.hasError('min')">
+        La cantidad mínima es 1.
+      </div>
+      <div class="text-xs text-red-600" *ngIf="form.controls.cantidad.hasError('max')">
+        No hay stock suficiente. Máximo {{ maxVendible }} unidades.
+      </div>
+      <div class="text-xs text-red-600" *ngIf="maxVendible === 0">
+        medicamento agotado.
       </div>
     </form>
-  </div>
 
-  <!-- ======= Footer / Acciones ======= -->
-  <ng-template pTemplate="footer">
+    <!-- total -->
+    <div class="rounded-2xl p-4 text-white" style="background: linear-gradient(90deg, #0056a3, #06b6d4);">
+      <div class="flex items-center gap-2 text-sm opacity-90">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M3 4h18v2H3zM3 9h18v2H3zM3 14h18v2H3zM3 19h18v2H3z"/></svg>
+        Total a pagar:
+      </div>
+      <div class="text-xl font-extrabold mt-1">${{ totalMostrar }}</div>
+      <div class="text-xs opacity-90">{{ form.value.cantidad || 1 }} × ${{ seleccionado?.valorUnitario }}</div>
+    </div>
+
+    <!-- acciones -->
     <div class="flex justify-end gap-2">
-      <button pButton label="Cancelar" [text]="true" (click)="cerrar.emit()"></button>
-      <button
-        pButton
-        label="Confirmar Venta"
-        [loading]="loading"
-        [disabled]="loading || maxVendible === 0 || form.invalid"
-        (click)="onConfirmar()">
+      <button class="px-3 py-2 rounded-xl border" (click)="cerrar.emit()">Cancelar</button>
+      <button class="px-3 py-2 rounded-xl bg-sky-600 text-white disabled:opacity-60"
+              [disabled]="loading || maxVendible === 0 || form.invalid"
+              (click)="onConfirmar()">
+        {{ loading ? 'Procesando...' : 'Confirmar Venta' }}
       </button>
     </div>
-  </ng-template>
-</p-dialog>
+  </div>
+</div>

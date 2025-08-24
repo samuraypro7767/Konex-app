@@ -1,7 +1,6 @@
 <div class="max-w-7xl mx-auto p-4 space-y-6">
   <!-- =========================
     Header local (opcional)
-    - Título y acción "Agregar Medicamento"
   ========================== -->
   @if (showHeader) {
     <div class="flex items-center justify-between">
@@ -19,47 +18,28 @@
   }
 
   <!-- =========================
-    Métricas / KPIs
-    - Total medicamentos (dataset completo)
-    - Stock total (suma de la página visible)
-    - Stock bajo (count < 10 en la página visible)
-    - Ingresos del mes (suma de ventas mes en curso)
+    KPIs
   ========================== -->
   <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-    <app-card-metric
-      [label]="'Medicamentos Almacenados'"
-      hint="Total Medicamentos"
-      [value]="totalMedicamentos()">
+    <app-card-metric label="Medicamentos Almacenados" hint="Total" [value]="totalMedicamentos()">
       <span metric-icon>
         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h16v2H4zM4 11h16v2H4zM4 18h16v2H4z"/></svg>
       </span>
     </app-card-metric>
 
-    <app-card-metric
-      [label]="'Stock Total'"
-      [value]="stockTotal()"
-      hint="unidades en página actual">
+    <app-card-metric label="Stock Total" [value]="stockTotal()" hint="página actual">
       <span metric-icon>
         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5a2 2 0 00-2 2v11h2V5h14v11h2V5a2 2 0 01-2-2zM3 19h18v2H3z"/></svg>
       </span>
     </app-card-metric>
 
-    <app-card-metric
-      [label]="'Stock Bajo'"
-      [value]="stockBajo()"
-      hint="stock &lt; 10">
+    <app-card-metric label="Stock Bajo" [value]="stockBajo()" hint="&lt; 10">
       <span metric-icon>
         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
       </span>
     </app-card-metric>
 
-    <!-- Ingresos del Mes:
-         - Muestra '—' mientras carga/si hay error
-         - Usa pipe currencyCol para COP cuando hay valor -->
-    <app-card-metric
-      [label]="'Ingresos del Mes'"
-      [value]="ingresosMes() === null ? '—' : (ingresosMes() | currencyCol)"
-      [hint]="'mes actual'">
+    <app-card-metric label="Ingresos del Mes" [value]="ingresosMes() | currencyCol" hint="mes actual">
       <span metric-icon>
         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
           <path d="M12 1l3 5h-6l3-5zM3 13h18v8H3z"/>
@@ -69,9 +49,7 @@
   </div>
 
   <!-- =========================
-    Filtros de búsqueda
-    - Texto por nombre (contiene)
-    - Botón "Buscar" reinicia a página 1
+    Filtros
   ========================== -->
   <div class="flex items-center gap-2">
     <input
@@ -79,7 +57,7 @@
       class="w-72 rounded-xl border px-3 py-2"
       placeholder="Buscar por nombre..."
       [value]="filtroNombre()"
-      (input)="filtroNombre.set($any($event.target).value)"
+      (input)="onFiltroChange($any($event.target).value)"
       aria-label="Buscar medicamento por nombre"
     />
     <button
@@ -91,12 +69,9 @@
   </div>
 
   <!-- =========================
-    Tabla de resultados (página visible)
-    - Incluye indicadores de vencimiento y estado
-    - Acciones por fila: vender / editar / eliminar
+    Tabla resultados
   ========================== -->
   <div class="rounded-2xl border overflow-hidden">
-    <!-- Encabezado con contador total -->
     <div class="flex justify-end p-2">
       <span class="text-xs rounded-full border px-2 py-1 text-gray-600">
         {{ totalMedicamentos() }} medicamentos
@@ -118,19 +93,12 @@
       </thead>
 
       <tbody class="divide-y">
-        <!-- Fila por cada medicamento (trackBy en el componente) -->
         <tr *ngFor="let m of rows(); trackBy: trackRow" class="text-sm">
-          <!-- Medicamento/Lab -->
           <td class="p-3 font-medium">{{ m.nombre }}</td>
           <td class="p-3">{{ m.laboratorioNombre }}</td>
-
-          <!-- Fechas -->
           <td class="p-3">{{ fmt(m.fechaFabricacion) }}</td>
 
-          <!-- Vencimiento con icono de alerta:
-               - Rojo = vencido
-               - Ámbar = por vencer (≤30 días)
-          -->
+          <!-- Vencimiento con icono si aplica -->
           <td class="p-3 flex items-center gap-2">
             <svg
               *ngIf="isVencido(m.fechaVencimiento) || isPorVencer(m.fechaVencimiento)"
@@ -152,66 +120,40 @@
             </span>
           </td>
 
-          <!-- Stock (resalta en rojo si 0 o < 10) -->
           <td class="p-3">
             <span [class.text-red-600]="m.cantidadStock === 0 || m.cantidadStock < 10">
               {{ m.cantidadStock }}
             </span>
           </td>
 
-          <!-- Precio unitario en COP (usa pipe currencyCol) -->
           <td class="p-3 font-semibold">
             {{ m.valorUnitario | currencyCol }}
           </td>
 
-          <!-- Estado visual (badge reutilizable) -->
           <td class="p-3">
             <app-badge-status
               [status]="m.cantidadStock === 0 ? 'agotado' : (m.cantidadStock < 10 ? 'bajo' : 'ok')">
             </app-badge-status>
           </td>
 
-          <!-- Acciones:
-               - Vender: abre modal de venta y realiza cotización inicial
-               - Editar: abre modal con datos precargados
-               - Eliminar: confirmación y borrado
-          -->
           <td class="p-3">
             <div class="flex items-center gap-2 text-gray-600">
-              <!-- Vender -->
-              <button
-                class="p-2 rounded-lg hover:bg-gray-100"
-                title="Vender"
-                aria-label="Vender"
-                (click)="abrirVender(m)">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5"
-                     fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+              <button class="p-2 rounded-lg hover:bg-gray-100" title="Vender" aria-label="Vender" (click)="abrirVender(m)">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round"
                         d="M2.25 3h1.386c.51 0 .955.343 1.084.835l.383 1.437M7.5 14.25h9.75m0 0l1.5-6.75H5.103m2.397 6.75L6.75 6.75m12 11.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0z"/>
                 </svg>
               </button>
 
-              <!-- Editar -->
-              <button
-                class="p-2 rounded-lg hover:bg-gray-100"
-                title="Editar"
-                aria-label="Editar"
-                (click)="abrirEditar(m)">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5"
-                     fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+              <button class="p-2 rounded-lg hover:bg-gray-100" title="Editar" aria-label="Editar" (click)="abrirEditar(m)">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round"
                         d="M16.862 4.487l1.651 1.651m-9.193 9.193l-3.32.369.37-3.32 9.192-9.193a1.75 1.75 0 112.476 2.476l-9.192 9.193z"/>
                 </svg>
               </button>
 
-              <!-- Eliminar -->
-              <button
-                class="p-2 rounded-lg hover:bg-red-50 text-red-600"
-                title="Eliminar"
-                aria-label="Eliminar"
-                (click)="eliminar(m)">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5"
-                     fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+              <button class="p-2 rounded-lg hover:bg-red-50 text-red-600" title="Eliminar" aria-label="Eliminar" (click)="eliminar(m)">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round"
                         d="M6 7h12m-9 0V5a1 1 0 011-1h2a1 1 0 011 1v2m6 0v12a2 2 0 01-2 2H8a2 2 0 01-2-2V7z"/>
                 </svg>
@@ -220,7 +162,6 @@
           </td>
         </tr>
 
-        <!-- Estado vacío -->
         <tr *ngIf="!loading() && rows().length === 0">
           <td colspan="9" class="p-6 text-center text-gray-500">Sin resultados</td>
         </tr>
@@ -230,23 +171,16 @@
 
   <!-- =========================
     Paginación
-    - Usa pageIndex y metadatos de `data()`
   ========================== -->
   <div class="flex items-center justify-between">
     <div class="text-sm text-gray-500">
       Página {{ (data()?.number ?? 0) + 1 }} de {{ data()?.totalPages ?? 1 }}
     </div>
     <div class="flex gap-2">
-      <button
-        class="px-3 py-1 rounded-lg border"
-        (click)="paginar(false)"
-        aria-label="Página anterior">
+      <button class="px-3 py-1 rounded-lg border" (click)="paginar(false)" aria-label="Página anterior">
         Anterior
       </button>
-      <button
-        class="px-3 py-1 rounded-lg border"
-        (click)="paginar(true)"
-        aria-label="Página siguiente">
+      <button class="px-3 py-1 rounded-lg border" (click)="paginar(true)" aria-label="Página siguiente">
         Siguiente
       </button>
     </div>
@@ -254,13 +188,11 @@
 
   <!-- =========================
     Modal Crear/Editar
-    - Contiene el formulario reutilizable de medicamentos
   ========================== -->
   <app-modal
     [open]="showForm()"
-    [confirmDisabled]="false"
-    (close)="showForm.set(false)"
-    (confirm)="0">
+    [title]="editando ? 'Editar Medicamento' : 'Nuevo Medicamento'"
+    (close)="showForm.set(false)">
     <app-medicamento-form
       [initial]="editando"
       (save)="onGuardar($event)"
@@ -269,8 +201,7 @@
   </app-modal>
 
   <!-- =========================
-    Modal Vender
-    - Recibe selección, cotización y estados de carga
+    Dialog Vender
   ========================== -->
   <app-vender-dialog
     [open]="showVender()"
