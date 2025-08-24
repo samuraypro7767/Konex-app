@@ -1,4 +1,8 @@
-<!-- Header superior -->
+<!-- =========================
+  Header superior (branding + acciones)
+  - Izquierda: logo y textos
+  - Derecha: botón contextual y campana de notificaciones
+========================== -->
 <header class="flex items-center justify-between px-6 py-3 shadow-sm bg-white">
   <!-- Logo + texto -->
   <div class="flex items-center gap-2">
@@ -11,8 +15,9 @@
     </div>
   </div>
 
-  <!-- Botón + notificación -->
+  <!-- Acciones del header (dependen de la pestaña activa) -->
   <div class="flex items-center gap-4">
+    <!-- Botón contextual: solo cuando la pestaña activa es "inventario" -->
     <button
       *ngIf="tab() === 'inventario'"
       (click)="abrirDesdeHeader()"
@@ -20,17 +25,20 @@
       + Agregar Medicamento
     </button>
 
-    <!-- Campana -->
+    <!-- Campana de notificaciones -->
+    <!-- El (click) en el wrapper hace stopPropagation para que el HostListener del documento no cierre el panel inmediatamente -->
     <div class="relative" (click)="$event.stopPropagation()">
       <button
         class="relative p-1 rounded-lg hover:bg-gray-100"
         aria-label="Notificaciones"
+        aria-haspopup="menu"
+        [attr.aria-expanded]="showNotif()"
         (click)="toggleNotifs($event)">
         <span class="material-icons text-gray-700">
           {{ showNotif() ? 'notifications' : 'notifications_none' }}
         </span>
 
-        <!-- Punto rojo si hay 'unread' y el panel NO está abierto -->
+        <!-- Indicador rojo: hay no leídas y el panel está cerrado -->
         <span
           *ngIf="unread() > 0 && !showNotif()"
           class="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 bg-red-500 rounded-full ring-2 ring-white">
@@ -38,13 +46,16 @@
       </button>
 
       <!-- Dropdown de notificaciones -->
+      <!-- role="menu" para accesibilidad; el contenedor también hace stopPropagation -->
       <div
         *ngIf="showNotif()"
         class="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-lg border z-50"
+        role="menu"
         (click)="$event.stopPropagation()">
 
         <div class="p-3 border-b font-semibold">Notificaciones</div>
 
+        <!-- Lista con scroll; cada notificación indica tipo (danger/warning/info), título, detalle y fecha -->
         <ul class="max-h-80 overflow-auto divide-y">
           <li
             *ngFor="let n of notifs(); trackBy: trackNotif"
@@ -61,10 +72,12 @@
             <div class="text-sm">
               <div class="font-medium">{{ n.title }}</div>
               <div class="text-gray-500" *ngIf="n.detail">{{ n.detail }}</div>
+              <!-- Fecha corta (ej: 24/08/25, 6:30 p. m.) -->
               <div class="text-xs text-gray-400 mt-1">{{ n.createdAt | date:'short' }}</div>
             </div>
           </li>
 
+          <!-- Estado vacío -->
           <li *ngIf="notifs().length === 0" class="p-6 text-center text-gray-500">
             Sin alertas
           </li>
@@ -74,9 +87,14 @@
   </div>
 </header>
 
-<!-- Contenido principal -->
+<!-- =========================
+  Contenido principal
+  - Título central
+  - Tabs (Inventario / Ventas)
+  - Render condicional de la página activa
+========================== -->
 <div class="relative max-w-7xl mx-auto p-6 space-y-8">
-  <!-- Título centrado -->
+  <!-- Hero / título -->
   <div class="text-center">
     <h1 class="text-5xl font-semibold text-sky-700 tracking-tight">
       Sistema de Gestión KONEX
@@ -86,18 +104,25 @@
     </p>
   </div>
 
-  <!-- Tabs -->
+  <!-- Selector de pestañas -->
   <div class="flex w-full justify-center">
-    <div class="bg-gray-100 rounded-full p-1 inline-flex shadow-inner">
+    <div class="bg-gray-100 rounded-full p-1 inline-flex shadow-inner" role="tablist" aria-label="Pestañas de dashboard">
+      <!-- Tab Inventario -->
       <button
         class="px-6 py-2 rounded-full transition"
+        role="tab"
+        [attr.aria-selected]="tab()==='inventario'"
         [class.bg-white]="tab()==='inventario'"
         [class.shadow]="tab()==='inventario'"
         (click)="seleccionar('inventario')">
         🧱 Inventario
       </button>
+
+      <!-- Tab Ventas -->
       <button
         class="px-6 py-2 rounded-full transition"
+        role="tab"
+        [attr.aria-selected]="tab()==='ventas'"
         [class.bg-white]="tab()==='ventas'"
         [class.shadow]="tab()==='ventas'"
         (click)="seleccionar('ventas')">
@@ -106,8 +131,10 @@
     </div>
   </div>
 
-  <!-- Contenido -->
+  <!-- Contenido de pestañas -->
+  <!-- Angular control flow (@if / @else) para render condicional -->
   @if (tab()==='inventario') {
+    <!-- #inv expone la instancia del hijo para que el padre (DashboardPage) pueda invocar métodos (ej: abrirCrear) -->
     <app-inventario-page #inv [showHeader]="false"></app-inventario-page>
   } @else {
     <app-ventas-page [showHeader]="false"></app-ventas-page>

@@ -1,26 +1,77 @@
 <div class="rounded-2xl border p-4 space-y-3">
+  <!-- ===========================
+       Encabezado del bloque de filtros
+       Describe el propósito del formulario
+  ============================ -->
   <div class="text-lg font-semibold">Filtros de Búsqueda</div>
 
+  <!-- ===========================
+       Formulario reactivo
+       - Controlado por `form` (FormGroup) desde el TS
+       - 3 columnas en desktop, 1 en móvil
+  ============================ -->
   <form [formGroup]="form" class="grid grid-cols-1 md:grid-cols-3 gap-3">
+
+    <!-- Campo: Fecha de inicio
+         - formControlName="desde"
+         - Requerido (validador definido en el TS)
+         - Formato nativo de <input type="date"> (YYYY-MM-DD)
+    -->
     <div>
       <label class="text-sm text-gray-500">Fecha de inicio</label>
-      <input type="date" class="w-full rounded-xl border px-3 py-2" formControlName="desde" />
+      <input
+        type="date"
+        class="w-full rounded-xl border px-3 py-2"
+        formControlName="desde"
+        aria-label="Fecha de inicio"
+      />
+      <!-- (Opcional) Mensaje de error si es requerido:
+      <div class="text-xs text-red-600" *ngIf="form.controls.desde.touched && form.controls.desde.hasError('required')">
+        La fecha de inicio es obligatoria.
+      </div>
+      -->
     </div>
 
+    <!-- Campo: Fecha de fin
+         - formControlName="hasta"
+         - Requerido
+    -->
     <div>
       <label class="text-sm text-gray-500">Fecha de fin</label>
-      <input type="date" class="w-full rounded-xl border px-3 py-2" formControlName="hasta" />
+      <input
+        type="date"
+        class="w-full rounded-xl border px-3 py-2"
+        formControlName="hasta"
+        aria-label="Fecha de fin"
+      />
+      <!-- (Opcional) Mensaje de error si es requerido:
+      <div class="text-xs text-red-600" *ngIf="form.controls.hasta.touched && form.controls.hasta.hasError('required')">
+        La fecha de fin es obligatoria.
+      </div>
+      -->
     </div>
 
+    <!-- Acciones:
+         - "Buscar" emite (buscar) al contenedor si el form es válido
+         - "Limpiar" resetea y emite (limpiar)
+    -->
     <div class="flex items-end gap-2">
-      <button type="button"
-              class="px-3 py-2 rounded-xl bg-gray-900 text-white disabled:opacity-60"
-              [disabled]="form.invalid"
-              (click)="onBuscar()">
+      <button
+        type="button"
+        class="px-3 py-2 rounded-xl bg-gray-900 text-white disabled:opacity-60"
+        [disabled]="form.invalid"
+        (click)="onBuscar()"
+        aria-label="Buscar ventas por rango de fechas"
+      >
         Buscar
       </button>
 
-      <button type="button" class="px-3 py-2 rounded-xl border" (click)="onLimpiar()">
+      <button
+        type="button"
+        class="px-3 py-2 rounded-xl border"
+        (click)="onLimpiar()"
+        aria-label="Limpiar filtros de búsqueda"
+      >
         Limpiar Filtros
       </button>
     </div>

@@ -1,11 +1,18 @@
 <div class="rounded-2xl border p-4 space-y-3">
+  <!-- Encabezado de la tarjeta: título + contador total -->
   <div class="flex items-center justify-between">
     <div class="text-xl font-semibold">Historial de Ventas</div>
     <span class="text-xs rounded-full border px-2 py-1 text-gray-600">{{ total }} ventas</span>
   </div>
 
+  <!-- Contenedor de la tabla (bordes + overflow para responsive) -->
   <div class="rounded-2xl border overflow-hidden">
     <table class="min-w-full">
+      <!--
+        Thead semántico.
+        Tip accesibilidad: puedes añadir <caption class="sr-only">Listado de ventas</caption>
+        y scope="col" en los th si quieres mejorar experiencia de lectores de pantalla.
+      -->
       <thead class="bg-gray-50">
         <tr class="text-left text-sm text-gray-500">
           <th class="p-3">Fecha y Hora</th>
@@ -16,17 +23,28 @@
           <th class="p-3">Total</th>
         </tr>
       </thead>
+
       <tbody class="divide-y">
+        <!--
+          Fila por venta.
+          Nota: el componente padre puede pasar un trackBy; aquí iteramos
+          directamente sobre `ventas` (Input).
+        -->
         <tr *ngFor="let v of ventas" class="text-sm">
+          <!-- Fecha principal (día) + hora en línea separada -->
           <td class="p-3 align-top w-40">
             <div>{{ v.fechaHora | date: 'dd/MM/yyyy' }}</div>
             <div class="text-xs text-gray-500">{{ v.fechaHora | date: 'HH:mm' }}</div>
           </td>
 
+          <!-- Datos derivados del primer ítem del detalle (helpers del TS) -->
           <td class="p-3">{{ medicamentoNombre(v) }}</td>
           <td class="p-3">{{ laboratorioNombre(v) }}</td>
           <td class="p-3">{{ cantidad(v) }}</td>
 
+          <!-- Moneda para unitario y total
+               Tip: si tu app usa COP, puedes reemplazar por el pipe personalizado | currencyCol
+          -->
           <td class="p-3">
             {{ valorUnitario(v) | currency:'USD':'symbol':'1.0-0' }}
           </td>
@@ -36,6 +54,7 @@
           </td>
         </tr>
 
+        <!-- Estado vacío -->
         <tr *ngIf="ventas.length === 0">
           <td colspan="6" class="p-6 text-center text-gray-500">Sin ventas</td>
         </tr>

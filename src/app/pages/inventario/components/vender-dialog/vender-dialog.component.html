@@ -1,52 +1,85 @@
+<!-- Overlay modal (bloquea la vista cuando open=true) -->
 <div *ngIf="open" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+  <!-- Contenedor del diálogo -->
   <div class="bg-white rounded-2xl w-full max-w-xl p-6 space-y-5 shadow-xl">
 
-    <!-- header -->
+    <!-- ======= Header ======= -->
     <div class="flex items-start justify-between">
       <div>
-        <div class="text-xl font-bold flex items-center  gap-2">
-          <svg class="w-5 h-5 text-sky-600 " viewBox="0 0 24 24" fill="currentColor">
+        <div class="text-xl font-bold flex items-center gap-2">
+          <!-- Ícono del título -->
+          <svg class="w-5 h-5 text-sky-600" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <path d="M2 4h2l3.6 7.59a2 2 0 001.8 1.16H17a2 2 0 001.94-1.5L21 6H6"/>
           </svg>
           Vender Medicamento
         </div>
         <div class="text-xs text-gray-500">Complete la información de la venta</div>
       </div>
-      <button class="text-gray-500 hover:text-gray-700" (click)="cerrar.emit()">✕</button>
+      <!-- Botón cerrar -->
+      <button class="text-gray-500 hover:text-gray-700" (click)="cerrar.emit()" aria-label="Cerrar">✕</button>
     </div>
 
-    <!-- producto -->
+    <!-- ======= Tarjeta del producto seleccionado ======= -->
     <div class="rounded-2xl border p-4 space-y-1">
       <div class="text-lg font-semibold">{{ seleccionado?.nombre }}</div>
       <div class="text-sm text-gray-500">Laboratorio: {{ seleccionado?.laboratorioNombre }}</div>
+
+      <!-- Fila: precio unitario -->
       <div class="flex items-center justify-between text-sm mt-1">
-        <div>Precio unitario:</div><div class="font-semibold">${{ seleccionado?.valorUnitario }}</div>
+        <div>Precio unitario:</div>
+        <div class="font-semibold">${{ seleccionado?.valorUnitario }}</div>
       </div>
+
+      <!-- Fila: stock disponible -->
       <div class="flex items-center justify-between text-sm">
         <div>Stock disponible:</div>
-        <div class="font-semibold">{{ maxVendible }} <span class="text-gray-500">unidades</span></div>
+        <div class="font-semibold">
+          {{ maxVendible }} <span class="text-gray-500">unidades</span>
+        </div>
       </div>
     </div>
 
-    <!-- cantidad -->
+    <!-- ======= Formulario de cantidad ======= -->
+    <!-- Usa Reactive Forms: formControlName="cantidad" con min=1 y max dinámico (stock) -->
     <form [formGroup]="form" class="space-y-3">
       <label class="text-sm text-gray-600">Cantidad a vender</label>
 
       <div class="flex items-center gap-2">
-        <button type="button" class="px-3 py-2 rounded-xl border hover:bg-gray-50" (click)="dec()">−</button>
+        <!-- Botón -1 (respeta el mínimo) -->
+        <button
+          type="button"
+          class="px-3 py-2 rounded-xl border hover:bg-gray-50"
+          (click)="dec()"
+          aria-label="Disminuir cantidad">
+          −
+        </button>
 
-        <input type="number"
-               class="w-24 text-center rounded-xl border px-3 py-2"
-               formControlName="cantidad"
-               min="1"
-               [attr.max]="maxVendible || null"
-               (input)="onCotizar()"
-               (blur)="onCotizar()">
+        <!-- Campo cantidad
+             - min fijo 1
+             - max dinámico (stock) via [attr.max]
+             - (input)/(blur) disparan recotización
+        -->
+        <input
+          type="number"
+          class="w-24 text-center rounded-xl border px-3 py-2"
+          formControlName="cantidad"
+          min="1"
+          [attr.max]="maxVendible || null"
+          (input)="onCotizar()"
+          (blur)="onCotizar()"
+          aria-label="Cantidad a vender">
 
-        <button type="button" class="px-3 py-2 rounded-xl border hover:bg-gray-50" (click)="inc()">+</button>
+        <!-- Botón +1 (respeta el máximo) -->
+        <button
+          type="button"
+          class="px-3 py-2 rounded-xl border hover:bg-gray-50"
+          (click)="inc()"
+          aria-label="Aumentar cantidad">
+          +
+        </button>
       </div>
 
-      <!-- ✅ errores -->
+      <!-- Mensajes de error del control 'cantidad' -->
       <div class="text-xs text-red-600" *ngIf="form.controls.cantidad.hasError('required')">
         Ingrese una cantidad.
       </div>
@@ -57,26 +90,41 @@
         No hay stock suficiente. Máximo {{ maxVendible }} unidades.
       </div>
       <div class="text-xs text-red-600" *ngIf="maxVendible === 0">
-        medicamento agotado.
+        Medicamento agotado.
       </div>
     </form>
 
-    <!-- total -->
-    <div class="rounded-2xl p-4 text-white" style="background: linear-gradient(90deg, #0056a3, #06b6d4);">
+    <!-- ======= Resumen / Total a pagar ======= -->
+    <!-- Muestra totalMostrar: prioriza cotización del backend; si no, cálculo local -->
+    <div
+      class="rounded-2xl p-4 text-white"
+      style="background: linear-gradient(90deg, #0056a3, #06b6d4);">
       <div class="flex items-center gap-2 text-sm opacity-90">
-        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M3 4h18v2H3zM3 9h18v2H3zM3 14h18v2H3zM3 19h18v2H3z"/></svg>
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M3 4h18v2H3zM3 9h18v2H3zM3 14h18v2H3zM3 19h18v2H3z"/>
+        </svg>
         Total a pagar:
       </div>
-      <div class="text-xl font-extrabold mt-1">${{ totalMostrar }}</div>
-      <div class="text-xs opacity-90">{{ form.value.cantidad || 1 }} × ${{ seleccionado?.valorUnitario }}</div>
+      <div class="text-xl font-extrabold mt-1">
+        ${{ totalMostrar }}
+        <!-- Tip: si quieres formato COP, usa un pipe aquí: {{ totalMostrar | currencyCol }} -->
+      </div>
+      <div class="text-xs opacity-90">
+        {{ form.value.cantidad || 1 }} × ${{ seleccionado?.valorUnitario }}
+      </div>
     </div>
 
-    <!-- acciones -->
+    <!-- ======= Acciones ======= -->
     <div class="flex justify-end gap-2">
       <button class="px-3 py-2 rounded-xl border" (click)="cerrar.emit()">Cancelar</button>
-      <button class="px-3 py-2 rounded-xl bg-sky-600 text-white disabled:opacity-60"
-              [disabled]="loading || maxVendible === 0 || form.invalid"
-              (click)="onConfirmar()">
+
+      <!-- Confirmar
+           - Deshabilita si: cargando, sin stock o formulario inválido
+      -->
+      <button
+        class="px-3 py-2 rounded-xl bg-sky-600 text-white disabled:opacity-60"
+        [disabled]="loading || maxVendible === 0 || form.invalid"
+        (click)="onConfirmar()">
         {{ loading ? 'Procesando...' : 'Confirmar Venta' }}
       </button>
     </div>

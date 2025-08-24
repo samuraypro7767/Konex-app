@@ -22,6 +22,20 @@ import { MedicamentoFormComponent } from './components/medicamento-form/medicame
 import { VenderDialogComponent } from './components/vender-dialog/vender-dialog.component';
 import { CurrencyColPipe } from '../../shared/pipes/currency-col.pipe';
 
+/**
+ * Página de **Inventario**.
+ *
+ * Responsabilidades:
+ * - Listar, buscar y paginar medicamentos.
+ * - CRUD de medicamentos con modales y feedback (SweetAlert2 + toasts).
+ * - Flujo de venta (cotizar y confirmar).
+ * - Métricas: total de ítems, stock total, stock bajo e **ingresos del mes**.
+ * - Helpers de fechas para marcar vencidos / por vencer.
+ *
+ * Notas:
+ * - Usa **signals** y **computed** de Angular para el estado reactivo.
+ * - Las operaciones que mutan datos (crear/editar/eliminar/venta) refrescan la tabla y las métricas.
+ */
 @Component({
   standalone: true,
   selector: 'app-inventario-page',
@@ -35,14 +49,18 @@ import { CurrencyColPipe } from '../../shared/pipes/currency-col.pipe';
   templateUrl: './inventario.page.html',
 })
 export class InventarioPage implements OnInit {
+  /** Muestra/oculta el encabezado local de esta página. Cuando se renderiza dentro del dashboard suele ir en `false`. */
   @Input() showHeader = true;
 
-  // DI
+  // ----------------- Inyección de dependencias -----------------
   private fb = inject(FormBuilder);
   private meds = inject(MedicamentosService);
   private ventas = inject(VentasService);
 
-  // Toast reutilizable
+  /**
+   * Config común para toasts de SweetAlert2.
+   * @remarks No bloquea la UI (toast), se ubica en esquina superior, y pausa el timer al pasar el mouse.
+   */
   private Toast = Swal.mixin({
     toast: true,
     position: 'top-end',
@@ -55,47 +73,68 @@ export class InventarioPage implements OnInit {
     }
   });
 
-  // estado general
+  // ----------------- Estado de tabla/filtros -----------------
+  /** Bandera de carga para la tabla principal. */
   loading = signal(false);
+  /** Índice de página **0-based**. */
   pageIndex = signal(0);
+  /** Tamaño de página. */
   pageSize  = signal(10);
+  /** Filtro por nombre (contiene). */
   filtroNombre = signal('');
 
-  // datos inventario
+  // ----------------- Datos de inventario -----------------
+  /** Página de medicamentos devuelta por el backend. */
   data = signal<Page<MedicamentoResponse> | null>(null);
 
-  // filas para *ngFor
+  // ----------------- Derivados para tabla -----------------
+  /** Filas a renderizar en la tabla (contenido de la página actual). */
   rows = computed<MedicamentoResponse[]>(() => this.data()?.content ?? []);
+  /** trackBy para *ngFor: evita rerenders innecesarios. */
   trackRow = (_: number, m: MedicamentoResponse) => m?.id ?? _;
 
-  // métricas inventario
+  // ----------------- Métricas de inventario -----------------
+  /** Total de medicamentos (en todo el dataset, no solo la página visible). */
   totalMedicamentos = computed(() => this.data()?.totalElements ?? 0);
+  /** Suma de stock de la página visible. */
   stockTotal = computed(() =>
     (this.data()?.content ?? []).reduce((acc, m) => acc + (m.cantidadStock ?? 0), 0)
   );
+  /** Cantidad de medicamentos con stock bajo (< 10) en la página visible. */
   stockBajo = computed(() =>
     (this.data()?.content ?? []).filter(m => (m.cantidadStock ?? 0) < 10).length
   );
 
-  // MÉTRICA: Ingresos del mes
+  // ----------------- Métrica: Ingresos del mes -----------------
+  /** Total de ingresos del mes actual (COP). */
   ingresosMes = signal<number | null>(null);
+  /** Texto legible del mes en curso (ej: “agosto de 2025”). */
   mesActual = new Intl.DateTimeFormat('es-CO', { month: 'long', year: 'numeric' }).format(new Date());
 
-  // “hoy” normalizado
+  // ----------------- Referencias de tiempo / helpers -----------------
+  /** “Hoy” normalizado para comparaciones de fechas por día. */
   today = new Date();
 
-  // Modal Vender
+  // ----------------- Modal Vender -----------------
+  /** Visibilidad del diálogo de venta. */
   showVender = signal(false);
+  /** Bandera de envío al confirmar la venta. */
   vendiendo  = signal(false);
+  /** Medicamento seleccionado para vender. */
   seleccionado: MedicamentoResponse | null = null;
+  /** Resultado de la cotización (si el backend responde). */
   cotizacion: CotizacionResponse | null = null;
+  /** Form del modal de venta: cantidad >= 1. */
   venderForm = this.fb.nonNullable.group({
     cantidad: [1, [Validators.required, Validators.min(1)]],
   });
 
-  // Modal Crear/Editar
+  // ----------------- Modal Crear/Editar -----------------
+  /** Visibilidad del formulario (modal). */
   showForm = signal(false);
+  /** Si no es null: edición; si es null: creación. */
   editando: MedicamentoResponse | null = null;
+  /** Formulario de crear/editar medicamento (validaciones mínimas). */
   form = this.fb.nonNullable.group({
     nombre: ['', Validators.required],
     laboratorioId: [0, [Validators.required, Validators.min(1)]],
@@ -106,12 +145,17 @@ export class InventarioPage implements OnInit {
   });
 
   // ----------------- ciclo de vida -----------------
+  /** Carga la tabla inicial y calcula los ingresos del mes. */
   ngOnInit(): void {
     this.load();
     this.loadIngresosMes(); // calcular ingresos del mes al iniciar
   }
 
   // ----------------- carga/paginación/filtros -----------------
+  /**
+   * Carga la página de medicamentos según el filtro y la paginación actual.
+   * @sideEffects Actualiza `data` y `loading`.
+   */
   load() {
     this.loading.set(true);
     this.meds.listar(this.filtroNombre(), this.pageIndex(), this.pageSize()).subscribe({
@@ -123,8 +167,13 @@ export class InventarioPage implements OnInit {
     });
   }
 
+  /** Reinicia a la primera página y vuelve a cargar con el filtro aplicado. */
   buscar() { this.pageIndex.set(0); this.load(); }
 
+  /**
+   * Cambia de página (prev/next) si el índice resultante es válido.
+   * @param next `true` avanza, `false` retrocede.
+   */
   paginar(next: boolean) {
     const page = this.pageIndex() + (next ? 1 : -1);
     if (page < 0) return;
@@ -134,6 +183,7 @@ export class InventarioPage implements OnInit {
   }
 
   // ----------------- CRUD -----------------
+  /** Abre el modal en modo **crear** y limpia el formulario. */
   abrirCrear() {
     this.editando = null;
     this.form.reset({
@@ -147,6 +197,7 @@ export class InventarioPage implements OnInit {
     this.showForm.set(true);
   }
 
+  /** Abre el modal en modo **editar** precargando los campos con el medicamento seleccionado. */
   abrirEditar(m: MedicamentoResponse) {
     this.editando = m;
     this.form.reset({
@@ -160,7 +211,11 @@ export class InventarioPage implements OnInit {
     this.showForm.set(true);
   }
 
-  // Crear / Editar con SweetAlert2
+  /**
+   * Guarda (crear/editar) un medicamento mostrando loading y feedback con SweetAlert2.
+   * @param req DTO a enviar al backend.
+   * @sideEffects Cierra modal, recarga la tabla y muestra toast de éxito / error.
+   */
   onGuardar(req: MedicamentoRequest) {
     const esEdicion = !!this.editando;
     const obs = this.editando ? this.meds.actualizar(this.editando.id, req) : this.meds.crear(req);
@@ -192,7 +247,11 @@ export class InventarioPage implements OnInit {
     });
   }
 
-  // Eliminar con confirmación SweetAlert2
+  /**
+   * Elimina un medicamento con confirmación, mostrando loading y feedback.
+   * @param m Medicamento a eliminar.
+   * @sideEffects Refresca la tabla y dispara toast/alert según resultado.
+   */
   eliminar(m: MedicamentoResponse) {
     Swal.fire({
       title: `¿Eliminar "${m.nombre}"?`,
@@ -231,6 +290,11 @@ export class InventarioPage implements OnInit {
   }
 
   // ----------------- Vender -----------------
+  /**
+   * Abre el diálogo de venta para un medicamento dado.
+   * @param m Medicamento a vender.
+   * @sideEffects Prepara `venderForm`, solicita cotización inicial y muestra el modal.
+   */
   abrirVender(m: MedicamentoResponse) {
     this.seleccionado = m;
     this.venderForm.setValue({ cantidad: 1 });
@@ -238,6 +302,11 @@ export class InventarioPage implements OnInit {
     this.showVender.set(true);
   }
 
+  /**
+   * Solicita cotización al backend para la cantidad deseada.
+   * @param cantidadFromChild Cantidad proveniente del componente hijo (si aplica).
+   * @sideEffects Actualiza `cotizacion` y muestra toast si falla (usa precio local).
+   */
   cotizar(cantidadFromChild?: number) {
     if (!this.seleccionado) return;
     const cantidad = cantidadFromChild ?? this.venderForm.value.cantidad ?? 1;
@@ -250,7 +319,11 @@ export class InventarioPage implements OnInit {
     });
   }
 
-  // Compra con SweetAlert2 (loading + resumen)
+  /**
+   * Confirma la venta (POST al backend) mostrando loading y resumen.
+   * - Si la venta es exitosa: cierra modal, recarga tabla y **recalcula ingresos del mes**.
+   * @param cantidadFromChild Cantidad desde el hijo (si aplica).
+   */
   confirmarVenta(cantidadFromChild?: number) {
     if (!this.seleccionado) return;
     const cantidad = cantidadFromChild ?? this.venderForm.value.cantidad ?? 1;
@@ -300,6 +373,10 @@ export class InventarioPage implements OnInit {
   }
 
   // ----------------- Ingresos del Mes -----------------
+  /**
+   * Formatea una fecha JS a `YYYY-MM-DD` (ISO corto) para parámetros de la API.
+   * @param d Fecha a formatear.
+   */
   private fmtISO(d: Date): string {
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -307,6 +384,10 @@ export class InventarioPage implements OnInit {
     return `${y}-${m}-${day}`;
   }
 
+  /**
+   * Carga las ventas del mes en curso y suma sus `valorTotal`.
+   * @sideEffects Actualiza `ingresosMes`. En error, setea 0.
+   */
   loadIngresosMes() {
     const hoy = new Date();
     const desde = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
@@ -325,7 +406,10 @@ export class InventarioPage implements OnInit {
   }
 
   // ----------------- Helpers de fecha y estado -----------------
-  /** intenta convertir string (ISO o dd/MM/yyyy) a Date */
+  /**
+   * Intenta convertir `string` (ISO o dd/MM/yyyy) a `Date`. Si no puede, retorna `null`.
+   * @param d Cadena/Date opcional.
+   */
   private toDate(d: string | Date | null | undefined): Date | null {
     if (!d) return null;
     if (d instanceof Date) return d;
@@ -342,13 +426,16 @@ export class InventarioPage implements OnInit {
     return isNaN(any.getTime()) ? null : any;
   }
 
-  /** Formato seguro (muestra '—' si no hay o es inválida) */
+  /** Formatea una fecha en locale `es-CO`; retorna '—' si es inválida o nula. */
   fmt(d?: string | Date | null): string {
     const dt = this.toDate(d ?? null);
     return dt ? new Intl.DateTimeFormat('es-CO').format(dt) : '—';
   }
 
-  /** true si la fecha de vencimiento ya pasó */
+  /**
+   * `true` si la fecha de vencimiento **ya pasó** (comparación por día).
+   * @param d Fecha a evaluar.
+   */
   isVencido(d?: string | Date | null): boolean {
     const fecha = this.toDate(d ?? null);
     if (!fecha) return false;
@@ -357,7 +444,10 @@ export class InventarioPage implements OnInit {
     return f < t;
   }
 
-  /** true si vence en los próximos 30 días */
+  /**
+   * `true` si vence en los próximos **30 días** (incluye hoy).
+   * @param d Fecha a evaluar.
+   */
   isPorVencer(d?: string | Date | null): boolean {
     const fecha = this.toDate(d ?? null);
     if (!fecha) return false;
@@ -367,7 +457,10 @@ export class InventarioPage implements OnInit {
     return fecha >= hoy && fecha <= limite;
   }
 
-  /** Devuelve fecha de creación desde el campo que exista (fechaCreacion|createdAt) */
+  /**
+   * Devuelve fecha de creación desde el campo disponible (`fechaCreacion` o `createdAt`).
+   * @param m Objeto parcial que puede contener alguno de los campos.
+   */
   getCreacion(m: Partial<Record<'fechaCreacion' | 'createdAt', string | Date>>): string | Date | null {
     return m?.fechaCreacion ?? m?.createdAt ?? null;
   }

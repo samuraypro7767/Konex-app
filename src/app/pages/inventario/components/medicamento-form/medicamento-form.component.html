@@ -1,54 +1,99 @@
 <div class="space-y-4">
+  <!-- Título dinámico: edita vs. crea -->
   <div class="text-xl font-bold">
     {{ initial ? 'Editar Medicamento' : 'Nuevo Medicamento' }}
   </div>
 
+  <!-- Formulario reactivo (usa el FormGroup del componente) -->
   <form [formGroup]="form" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+    <!-- Nombre del medicamento (requerido) -->
     <div class="md:col-span-2">
       <label class="text-sm text-gray-500">Nombre</label>
       <input class="w-full rounded-xl border px-3 py-2" formControlName="nombre" />
+      <!-- Tip: mostrar error si está tocado e inválido
+      <div class="text-xs text-red-600 mt-1" *ngIf="form.controls.nombre.touched && form.controls.nombre.hasError('required')">
+        El nombre es obligatorio.
+      </div>
+      -->
     </div>
 
+    <!-- Laboratorio (select) con validador personalizado: allowedLabs -->
     <div class="md:col-span-2">
       <label class="text-sm text-gray-500">Laboratorio</label>
-<select class="w-full rounded-xl border px-3 py-2" formControlName="laboratorioId">
-  <option [ngValue]="null" disabled>Seleccione un laboratorio…</option>
-  <option *ngFor="let lab of labs; trackBy: trackLab" [ngValue]="lab.id">
-    {{ lab.id }} — {{ lab.nombre }}
-  </option>
-</select>
-</div>
-<div class="text-xs text-red-600 mt-1" *ngIf="form.controls.laboratorioId.hasError('labNotAllowed') && form.controls.laboratorioId.touched">
-  El laboratorio debe ser 1, 2 o 3.
-</div>
+      <select class="w-full rounded-xl border px-3 py-2" formControlName="laboratorioId">
+        <!-- Placeholder deshabilitado -->
+        <option [ngValue]="null" disabled>Seleccione un laboratorio…</option>
+        <!-- Opciones desde el array labs; trackBy para rendimiento -->
+        <option *ngFor="let lab of labs; trackBy: trackLab" [ngValue]="lab.id">
+          {{ lab.id }} — {{ lab.nombre }}
+        </option>
+      </select>
+    </div>
 
+    <!-- Error específico del validador labNotAllowed -->
+    <div
+      class="text-xs text-red-600 mt-1"
+      *ngIf="form.controls.laboratorioId.hasError('labNotAllowed') && form.controls.laboratorioId.touched">
+      El laboratorio debe ser 1, 2 o 3.
+    </div>
 
+    <!-- Fecha de fabricación (requerida) -->
     <div>
       <label class="text-sm text-gray-500">Fecha de Fabricación</label>
       <input type="date" class="w-full rounded-xl border px-3 py-2" formControlName="fechaFabricacion" />
+      <!--
+      <div class="text-xs text-red-600 mt-1" *ngIf="form.controls.fechaFabricacion.touched && form.controls.fechaFabricacion.hasError('required')">
+        La fecha de fabricación es obligatoria.
+      </div>
+      -->
     </div>
 
+    <!-- Fecha de vencimiento (requerida) -->
     <div>
       <label class="text-sm text-gray-500">Fecha de Vencimiento</label>
       <input type="date" class="w-full rounded-xl border px-3 py-2" formControlName="fechaVencimiento" />
+      <!--
+      <div class="text-xs text-red-600 mt-1" *ngIf="form.controls.fechaVencimiento.touched && form.controls.fechaVencimiento.hasError('required')">
+        La fecha de vencimiento es obligatoria.
+      </div>
+      -->
     </div>
 
+    <!-- Cantidad en stock (>= 0) -->
     <div>
       <label class="text-sm text-gray-500">Cantidad en Stock</label>
       <input type="number" class="w-full rounded-xl border px-3 py-2" formControlName="cantidadStock" />
+      <!--
+      <div class="text-xs text-red-600 mt-1" *ngIf="form.controls.cantidadStock.touched && form.controls.cantidadStock.hasError('min')">
+        La cantidad mínima es 0.
+      </div>
+      -->
     </div>
 
+    <!-- Precio unitario (>= 1) -->
     <div>
       <label class="text-sm text-gray-500">Precio Unitario</label>
       <input type="number" class="w-full rounded-xl border px-3 py-2" formControlName="valorUnitario" />
+      <!--
+      <div class="text-xs text-red-600 mt-1" *ngIf="form.controls.valorUnitario.touched && form.controls.valorUnitario.hasError('min')">
+        El precio unitario debe ser mayor o igual a 1.
+      </div>
+      -->
     </div>
   </form>
 
+  <!-- Acciones del formulario -->
   <div class="flex justify-end gap-2">
     <button class="px-3 py-2 rounded-xl border" (click)="cancel.emit()">Cancelar</button>
-    <button class="px-3 py-2 rounded-xl bg-sky-600 text-white disabled:opacity-60"
-            [disabled]="form.invalid"
-            (click)="onSave()">
+
+    <!-- Guardar (crear/actualizar)
+         Deshabilitado si el formulario es inválido
+    -->
+    <button
+      class="px-3 py-2 rounded-xl bg-sky-600 text-white disabled:opacity-60"
+      [disabled]="form.invalid"
+      (click)="onSave()">
       {{ initial ? 'Actualizar Medicamento' : 'Crear Medicamento' }}
     </button>
   </div>

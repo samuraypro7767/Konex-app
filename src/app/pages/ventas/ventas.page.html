@@ -1,6 +1,9 @@
 <div class="max-w-7xl mx-auto p-4 space-y-6">
 
-  <!-- Header (opcional) -->
+  <!-- =======================
+       Header (opcional)
+       Muestra título y subtítulo si showHeader === true
+  ======================== -->
   @if (showHeader) {
     <div class="flex items-center justify-between">
       <div>
@@ -10,7 +13,14 @@
     </div>
   }
 
-  <!-- Métricas -->
+  <!-- =======================
+       Métricas de la vista
+       - Total de ventas
+       - Ingresos acumulados (COP via currencyCol)
+       - Promedio por venta
+       Tips:
+       - Puedes añadir otra card para “Ingresos del mes” si lo expones desde el TS.
+  ======================== -->
   <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
     <app-card-metric [label]="'Total Ventas'" [value]="totalVentas()">
       <span metric-icon>
@@ -37,18 +47,30 @@
     </app-card-metric>
   </div>
 
-  <!-- Filtros -->
+  <!-- =======================
+       Filtros de rango (hijo)
+       Emite (buscar) y (limpiar) hacia el TS
+  ======================== -->
   <app-ventas-filtros
     (buscar)="onBuscar($event)"
     (limpiar)="onLimpiar()">
   </app-ventas-filtros>
 
-  <!-- Estado de carga -->
+  <!-- =======================
+       Estado de carga
+  ======================== -->
   <div *ngIf="cargando()" class="rounded-xl border p-4 text-sm text-gray-500">
     Cargando ventas...
   </div>
 
-  <!-- Tabla -->
+  <!-- =======================
+       Tabla de resultados
+       - Contador superior derecho
+       - Thead semántico
+       - Filas con trackBy en el TS (trackVenta)
+       Accesibilidad:
+       - Puedes agregar <caption class="sr-only">Listado de ventas</caption> si quieres.
+  ======================== -->
   <div class="rounded-2xl border overflow-hidden">
     <div class="flex justify-end p-2">
       <span class="text-xs rounded-full border px-2 py-1 text-gray-600">
@@ -68,24 +90,30 @@
       </thead>
 
       <tbody class="divide-y">
+        <!-- Fila por venta -->
         <tr *ngFor="let v of ventas(); trackBy: trackVenta" class="text-sm">
-          <!-- fecha -->
+          <!-- Fecha (día) + hora en línea aparte -->
           <td class="p-3 align-top w-40">
             <div>{{ v.fechaHora | date:'dd/MM/yyyy' }}</div>
             <div class="text-xs text-gray-500">{{ v.fechaHora | date:'HH:mm' }}</div>
           </td>
 
-          <!-- item principal -->
+          <!-- Primer item del detalle (si hay más items, puedes listar en una subtabla o tooltip) -->
           <td class="p-3 text-center">{{ medicamentoNombre(v) }}</td>
+
+          <!-- Cantidad vendida del primer item -->
           <td class="p-3">{{ cantidad(v) }}</td>
 
-          <!-- $ unitario y total en COP -->
+          <!-- Precio unitario (COP) -->
           <td class="p-3">{{ (valorUnitario(v) | currencyCol) }}</td>
+
+          <!-- Total de la venta (COP) -->
           <td class="p-3 font-semibold text-green-600">
             {{ (v.valorTotal | currencyCol) }}
           </td>
         </tr>
 
+        <!-- Estado vacío (sin ventas y no cargando) -->
         <tr *ngIf="!cargando() && ventas().length === 0">
           <td colspan="6" class="p-6 text-center text-gray-500">
             Sin ventas

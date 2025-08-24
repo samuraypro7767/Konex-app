@@ -2,6 +2,12 @@
 import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
+/**
+ * Posibles estados visuales del badge:
+ * - `'agotado'`: sin stock disponible
+ * - `'bajo'`: stock bajo (umbral lo define el padre)
+ * - `'ok'`: stock disponible en condiciones normales
+ */
 type Estado = 'agotado' | 'bajo' | 'ok';
 
 @Component({
@@ -16,8 +22,21 @@ type Estado = 'agotado' | 'bajo' | 'ok';
   `
 })
 export class BadgeStatusComponent {
+  /**
+   * Estado actual del badge.
+   *
+   * @default 'ok'
+   * @example
+   * ```html
+   * <app-badge-status [status]="'bajo'"></app-badge-status>
+   * ```
+   */
   @Input() status: Estado = 'ok';
 
+  /**
+   * Etiqueta legible según `status`.
+   * @returns Texto a mostrar en el chip (e.g., "Agotado", "Stock bajo", "Disponible").
+   */
   get etiqueta(): string {
     switch (this.status) {
       case 'agotado': return 'Agotado';
@@ -26,6 +45,10 @@ export class BadgeStatusComponent {
     }
   }
 
+  /**
+   * Clases de Tailwind para el color de fondo y texto según `status`.
+   * @returns Clase CSS aplicada al `<span>` (no incluye clases comunes de layout/tipografía).
+   */
   get clase(): string {
     switch (this.status) {
       case 'agotado': return 'bg-red-100 text-red-800';
