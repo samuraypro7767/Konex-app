@@ -1,0 +1,183 @@
+<div class="max-w-7xl mx-auto p-4 space-y-6">
+
+  <!-- Header + Acciones -->
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-3xl font-extrabold text-sky-700">Sistema de Gestión KONEX</h1>
+      <p class="text-gray-500">Inventario y ventas de medicamentos para droguerías</p>
+    </div>
+    <button (click)="abrirCrear()"
+            class="px-4 py-2 rounded-xl bg-sky-600 text-white shadow hover:bg-sky-700">
+      + Agregar Medicamento
+    </button>
+  </div>
+
+  <!-- Métricas -->
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+    <div class="rounded-2xl border p-4">
+      <div class="text-sm text-gray-500">Total Medicamentos</div>
+      <div class="text-3xl font-bold">{{ totalMedicamentos() }}</div>
+      <div class="text-xs text-gray-400">medicamentos registrados</div>
+    </div>
+    <div class="rounded-2xl border p-4">
+      <div class="text-sm text-gray-500">Stock Total</div>
+      <div class="text-3xl font-bold">{{ stockTotal() }}</div>
+      <div class="text-xs text-gray-400">unidades en inventario (página actual)</div>
+    </div>
+    <div class="rounded-2xl border p-4">
+      <div class="text-sm text-gray-500">Stock Bajo</div>
+      <div class="text-3xl font-bold">{{ stockBajo() }}</div>
+      <div class="text-xs text-gray-400">medicamentos con stock &lt; 10</div>
+    </div>
+    <div class="rounded-2xl border p-4">
+      <div class="text-sm text-gray-500">Ingresos del Mes</div>
+      <div class="text-3xl font-bold">$—</div>
+      <div class="text-xs text-gray-400">*Agregar endpoint luego</div>
+    </div>
+  </div>
+
+  <!-- Filtros -->
+  <div class="flex items-center gap-2">
+    <input
+      type="text"
+      class="w-72 rounded-xl border px-3 py-2"
+      placeholder="Buscar por nombre..."
+      [value]="filtroNombre()"
+      (input)="filtroNombre.set($any($event.target).value)"
+
+    />
+    <button (click)="buscar()" class="px-3 py-2 rounded-xl bg-gray-900 text-white">Buscar</button>
+  </div>
+
+  <!-- Tabla -->
+  <div class="rounded-2xl border overflow-hidden">
+    <table class="min-w-full">
+      <thead class="bg-gray-50">
+        <tr class="text-left text-sm text-gray-500">
+          <th class="p-3">Medicamento</th>
+          <th class="p-3">Laboratorio</th>
+          <th class="p-3">Vencimiento</th>
+          <th class="p-3">Stock</th>
+          <th class="p-3">Precio</th>
+          <th class="p-3">Acciones</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y">
+        <tr *ngFor="let m of data()?.content" class="text-sm">
+          <td class="p-3 font-medium">{{ m.nombre }}</td>
+          <td class="p-3">{{ m.laboratorioNombre }}</td>
+          <td class="p-3">{{ m.fechaVencimiento }}</td>
+          <td class="p-3">
+            <span [class.text-red-600]="m.cantidadStock < 10">{{ m.cantidadStock }}</span>
+          </td>
+          <td class="p-3 font-semibold">${{ m.valorUnitario }}</td>
+          <td class="p-3 flex gap-2">
+            <button class="px-2 py-1 rounded-lg border" (click)="abrirVender(m)">Vender</button>
+            <button class="px-2 py-1 rounded-lg border" (click)="abrirEditar(m)">Editar</button>
+            <button class="px-2 py-1 rounded-lg border text-red-600" (click)="eliminar(m)">Eliminar</button>
+          </td>
+        </tr>
+        <tr *ngIf="(data()?.content?.length ?? 0) === 0">
+          <td colspan="6" class="p-6 text-center text-gray-500">Sin resultados</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Paginación -->
+  <div class="flex items-center justify-between">
+    <div class="text-sm text-gray-500">
+      Página {{ (data()?.number ?? 0) + 1 }} de {{ data()?.totalPages ?? 1 }}
+    </div>
+    <div class="flex gap-2">
+      <button class="px-3 py-1 rounded-lg border" (click)="paginar(false)">Anterior</button>
+      <button class="px-3 py-1 rounded-lg border" (click)="paginar(true)">Siguiente</button>
+    </div>
+  </div>
+
+  <!-- MODAL CREAR/EDITAR -->
+  <div *ngIf="showForm()" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+    <div class="bg-white rounded-2xl w-full max-w-xl p-6 space-y-4">
+      <div class="text-xl font-bold">{{ editando ? 'Editar Medicamento' : 'Nuevo Medicamento' }}</div>
+
+      <form [formGroup]="form" class="grid grid-cols-2 gap-4">
+        <div class="col-span-2">
+          <label class="text-sm text-gray-500">Nombre</label>
+          <input class="w-full rounded-xl border px-3 py-2" formControlName="nombre">
+        </div>
+
+        <div class="col-span-2">
+          <label class="text-sm text-gray-500">Laboratorio (ID)</label>
+          <input type="number" class="w-full rounded-xl border px-3 py-2" formControlName="laboratorioId">
+        </div>
+
+        <div>
+          <label class="text-sm text-gray-500">Fecha Fabricación</label>
+          <input type="date" class="w-full rounded-xl border px-3 py-2" formControlName="fechaFabricacion">
+        </div>
+        <div>
+          <label class="text-sm text-gray-500">Fecha Vencimiento</label>
+          <input type="date" class="w-full rounded-xl border px-3 py-2" formControlName="fechaVencimiento">
+        </div>
+
+        <div>
+          <label class="text-sm text-gray-500">Stock</label>
+          <input type="number" class="w-full rounded-xl border px-3 py-2" formControlName="cantidadStock">
+        </div>
+        <div>
+          <label class="text-sm text-gray-500">Precio</label>
+          <input type="number" class="w-full rounded-xl border px-3 py-2" formControlName="valorUnitario">
+        </div>
+      </form>
+
+      <div class="flex justify-end gap-2">
+        <button class="px-3 py-2 rounded-xl border" (click)="showForm.set(false)">Cancelar</button>
+        <button class="px-3 py-2 rounded-xl bg-sky-600 text-white" (click)="guardar()">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL VENDER -->
+  <div *ngIf="showVender()" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+    <div class="bg-white rounded-2xl w-full max-w-xl p-6 space-y-4">
+      <div class="text-xl font-bold">Vender Medicamento</div>
+      <div class="rounded-xl border p-4">
+        <div class="font-semibold">{{ seleccionado?.nombre }}</div>
+        <div class="text-sm text-gray-500">Laboratorio: {{ seleccionado?.laboratorioNombre }}</div>
+        <div class="text-sm">Precio unitario: ${{ seleccionado?.valorUnitario }}</div>
+        <div class="text-sm">Stock disponible: {{ seleccionado?.cantidadStock }}</div>
+      </div>
+
+      <div class="space-y-2">
+        <label class="text-sm text-gray-500">Cantidad a vender</label>
+        <div class="flex gap-2">
+          <input type="number" min="1" class="w-full rounded-xl border px-3 py-2"
+                 [formControl]="venderForm.controls.cantidad"
+                 (input)="cotizar()">
+          <button class="px-3 py-2 rounded-xl border" (click)="cotizar()">Actualizar total</button>
+        </div>
+
+        <div class="rounded-xl bg-sky-600 text-white p-4 flex items-center justify-between">
+          <div>
+            <div class="text-sm opacity-90">Total a pagar:</div>
+            <div class="text-xl font-bold">
+              ${{ cotizacion?.valorTotal ?? (seleccionado?.valorUnitario || 0) * (venderForm.value.cantidad || 1) }}
+            </div>
+            <div class="text-xs opacity-80">
+              {{ (venderForm.value.cantidad || 1) }} x ${{ seleccionado?.valorUnitario }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2">
+        <button class="px-3 py-2 rounded-xl border" (click)="showVender.set(false)">Cancelar</button>
+        <button class="px-3 py-2 rounded-xl bg-sky-600 text-white disabled:opacity-60"
+                [disabled]="vendiendo()" (click)="confirmarVenta()">
+          {{ vendiendo() ? 'Procesando...' : 'Confirmar Venta' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>

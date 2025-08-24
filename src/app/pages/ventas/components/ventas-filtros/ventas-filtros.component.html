@@ -1,0 +1,28 @@
+<div class="rounded-2xl border p-4 space-y-3">
+  <div class="text-lg font-semibold">Filtros de Búsqueda</div>
+
+  <form [formGroup]="form" class="grid grid-cols-1 md:grid-cols-3 gap-3">
+    <div>
+      <label class="text-sm text-gray-500">Fecha de inicio</label>
+      <input type="date" class="w-full rounded-xl border px-3 py-2" formControlName="desde" />
+    </div>
+
+    <div>
+      <label class="text-sm text-gray-500">Fecha de fin</label>
+      <input type="date" class="w-full rounded-xl border px-3 py-2" formControlName="hasta" />
+    </div>
+
+    <div class="flex items-end gap-2">
+      <button type="button"
+              class="px-3 py-2 rounded-xl bg-gray-900 text-white disabled:opacity-60"
+              [disabled]="form.invalid"
+              (click)="onBuscar()">
+        Buscar
+      </button>
+
+      <button type="button" class="px-3 py-2 rounded-xl border" (click)="onLimpiar()">
+        Limpiar Filtros
+      </button>
+    </div>
+  </form>
+</div>

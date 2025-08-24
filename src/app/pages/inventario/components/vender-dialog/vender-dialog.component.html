@@ -1,0 +1,43 @@
+<div *ngIf="open" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+  <div class="bg-white rounded-2xl w-full max-w-xl p-6 space-y-4">
+    <div class="text-xl font-bold">Vender Medicamento</div>
+
+    <div class="rounded-xl border p-4">
+      <div class="font-semibold">{{ seleccionado?.nombre }}</div>
+      <div class="text-sm text-gray-500">Laboratorio: {{ seleccionado?.laboratorioNombre }}</div>
+      <div class="text-sm">Precio unitario: ${{ seleccionado?.valorUnitario }}</div>
+      <div class="text-sm">Stock disponible: {{ seleccionado?.cantidadStock }}</div>
+    </div>
+
+    <div class="space-y-2">
+      <label class="text-sm text-gray-500">Cantidad a vender</label>
+      <div class="flex gap-2">
+        <input type="number" min="1" class="w-full rounded-xl border px-3 py-2"
+               formControlName="cantidad"
+               [formGroup]="form"
+               (input)="onCotizar()">
+      </div>
+
+      <div class="rounded-xl bg-sky-600 text-white p-4 flex items-center justify-between">
+        <div>
+          <div class="text-sm opacity-90">Total a pagar:</div>
+          <div class="text-xl font-bold">
+            ${{ cotizacion?.valorTotal ?? (seleccionado?.valorUnitario || 0) * (form.value.cantidad || 1) }}
+          </div>
+          <div class="text-xs opacity-80">
+            {{ form.value.cantidad || 1 }} x ${{ seleccionado?.valorUnitario }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex justify-end gap-2">
+      <button class="px-3 py-2 rounded-xl border" (click)="cerrar.emit()">Cancelar</button>
+      <button class="px-3 py-2 rounded-xl bg-sky-600 text-white disabled:opacity-60"
+              [disabled]="loading"
+              (click)="onConfirmar()">
+        {{ loading ? 'Procesando...' : 'Confirmar Venta' }}
+      </button>
+    </div>
+  </div>
+</div>

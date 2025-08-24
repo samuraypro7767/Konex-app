@@ -1,0 +1,49 @@
+<div class="rounded-2xl border overflow-hidden">
+  <table class="min-w-full">
+    <thead class="bg-gray-50">
+      <tr class="text-left text-sm text-gray-500">
+        <th class="p-3">Medicamento</th>
+        <th class="p-3">Laboratorio</th>
+        <th class="p-3">Vencimiento</th>
+        <th class="p-3">Stock</th>
+        <th class="p-3">Precio</th>
+        <th class="p-3">Estado</th>
+        <th class="p-3">Acciones</th>
+      </tr>
+    </thead>
+
+    <tbody class="divide-y">
+      <tr *ngFor="let m of medicamentos" class="text-sm">
+        <td class="p-3 font-medium">{{ m.nombre }}</td>
+        <td class="p-3">{{ m.laboratorioNombre }}</td>
+        <td class="p-3">{{ m.fechaVencimiento }}</td>
+
+        <td class="p-3">
+          <span [class.text-red-600]="m.cantidadStock < 10">{{ m.cantidadStock }}</span>
+        </td>
+
+        <td class="p-3 font-semibold">
+          {{ m.valorUnitario | currency:'USD':'symbol':'1.0-0' }}
+        </td>
+
+        <td class="p-3">
+          <app-badge-status
+            [status]="m.cantidadStock === 0 ? 'agotado' : (m.cantidadStock < 10 ? 'bajo' : 'ok')">
+          </app-badge-status>
+        </td>
+
+        <td class="p-3">
+          <div class="flex gap-2">
+            <button class="px-2 py-1 rounded-lg border" (click)="vender.emit(m)">Vender</button>
+            <button class="px-2 py-1 rounded-lg border" (click)="editar.emit(m)">Editar</button>
+            <button class="px-2 py-1 rounded-lg border text-red-600" (click)="eliminar.emit(m)">Eliminar</button>
+          </div>
+        </td>
+      </tr>
+
+      <tr *ngIf="medicamentos.length === 0">
+        <td colspan="7" class="p-6 text-center text-gray-500">Sin resultados</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
