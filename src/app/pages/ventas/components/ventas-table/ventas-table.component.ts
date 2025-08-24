@@ -1,11 +1,11 @@
 import { Component, Input } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, NgIf, NgFor } from '@angular/common';
 import { VentaResponse } from '../../../../core/model/venta.model';
 
 @Component({
   selector: 'app-ventas-table',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, NgIf, NgFor],
   templateUrl: './ventas-table.component.html',
 })
 export class VentasTableComponent {

@@ -1,77 +1,95 @@
 <div class="max-w-7xl mx-auto p-4 space-y-6">
-  <h1 class="text-2xl font-extrabold text-sky-700">Ventas</h1>
+
+  <!-- Header (opcional) -->
+  @if (showHeader) {
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl md:text-3xl font-extrabold text-sky-700">Ventas</h1>
+        <p class="text-gray-500">Histórico y métricas de ventas</p>
+      </div>
+    </div>
+  }
 
   <!-- Métricas -->
   <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-    <div class="rounded-2xl border p-4">
-      <div class="text-sm text-gray-500">Total Ventas</div>
-      <div class="text-3xl font-bold">{{ totalVentas }}</div>
-    </div>
-    <div class="rounded-2xl border p-4">
-      <div class="text-sm text-gray-500">Ingresos Totales</div>
-      <div class="text-3xl font-bold">${{ ingresosTotales }}</div>
-    </div>
-    <div class="rounded-2xl border p-4">
-      <div class="text-sm text-gray-500">Promedio por Venta</div>
-      <div class="text-3xl font-bold">${{ promedioVenta }}</div>
-    </div>
+    <app-card-metric [label]="'Total Ventas'" [value]="totalVentas()">
+      <span metric-icon>
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M3 13h2v8H3zM19 3h2v18h-2zM11 8h2v13h-2zM7 11h2v10H7zM15 5h2v16h-2z"/>
+        </svg>
+      </span>
+    </app-card-metric>
+
+    <app-card-metric [label]="'Ingresos Totales'" [value]="(ingresosTot() | currencyCol)">
+      <span metric-icon>
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 1l3 5h-6l3-5zm0 22l-3-5h6l-3 5zM1 12l5-3v6l-5-3zm22 0l-5 3V9l5 3zM4 4l4 4-4 4L0 8l4-4zm16 0l4 4-4 4-4-4 4-4z"/>
+        </svg>
+      </span>
+    </app-card-metric>
+
+    <app-card-metric [label]="'Promedio por Venta'" [value]="(promedioVenta() | currencyCol)">
+      <span metric-icon>
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M4 4h16v2H4zm0 7h10v2H4zm0 7h7v2H4z"/>
+        </svg>
+      </span>
+    </app-card-metric>
   </div>
 
   <!-- Filtros -->
-  <div class="rounded-2xl border p-4 space-y-3">
-    <div class="text-lg font-semibold">Filtros de Búsqueda</div>
-    <form [formGroup]="filtro" class="grid grid-cols-1 md:grid-cols-3 gap-3">
-      <div>
-        <label class="text-sm text-gray-500">Fecha de inicio</label>
-        <input type="date" class="w-full rounded-xl border px-3 py-2" formControlName="desde">
-      </div>
-      <div>
-        <label class="text-sm text-gray-500">Fecha de fin</label>
-        <input type="date" class="w-full rounded-xl border px-3 py-2" formControlName="hasta">
-      </div>
-      <div class="flex items-end gap-2">
-        <button type="button" class="px-3 py-2 rounded-xl bg-gray-900 text-white" (click)="buscar()">Buscar</button>
-        <button type="button" class="px-3 py-2 rounded-xl border" (click)="limpiar()">Limpiar Filtros</button>
-      </div>
-    </form>
+  <app-ventas-filtros
+    (buscar)="onBuscar($event)"
+    (limpiar)="onLimpiar()">
+  </app-ventas-filtros>
+
+  <!-- Estado de carga -->
+  <div *ngIf="cargando()" class="rounded-xl border p-4 text-sm text-gray-500">
+    Cargando ventas...
   </div>
 
-  <!-- Tabla simple -->
+  <!-- Tabla -->
   <div class="rounded-2xl border overflow-hidden">
+    <div class="flex justify-end p-2">
+      <span class="text-xs rounded-full border px-2 py-1 text-gray-600">
+        {{ totalVentas() }} ventas
+      </span>
+    </div>
+
     <table class="min-w-full">
       <thead class="bg-gray-50">
         <tr class="text-left text-sm text-gray-500">
           <th class="p-3">Fecha y Hora</th>
-          <th class="p-3">Medicamento</th>
+          <th class="p-3 text-center">Medicamento</th>
           <th class="p-3">Cantidad</th>
           <th class="p-3">Precio Unitario</th>
           <th class="p-3">Total</th>
         </tr>
       </thead>
+
       <tbody class="divide-y">
-        <tr *ngFor="let v of ventas" class="text-sm">
+        <tr *ngFor="let v of ventas(); trackBy: trackVenta" class="text-sm">
+          <!-- fecha -->
           <td class="p-3 align-top w-40">
-            <div>{{ v.fechaHora | date: 'dd/MM/yyyy' }}</div>
-            <div class="text-xs text-gray-500">{{ v.fechaHora | date: 'HH:mm' }}</div>
+            <div>{{ v.fechaHora | date:'dd/MM/yyyy' }}</div>
+            <div class="text-xs text-gray-500">{{ v.fechaHora | date:'HH:mm' }}</div>
           </td>
-          <ng-container *ngIf="v.items?.length; else sinItem">
-            <ng-container *ngFor="let it of v.items | slice:0:1">
-              <td class="p-3">{{ it.medicamentoNombre }}</td>
-              <td class="p-3">{{ it.cantidad }}</td>
-              <td class="p-3">{{ it.valorUnitario | currency:'USD':'symbol':'1.0-0' }}</td>
-            </ng-container>
-          </ng-container>
-          <ng-template #sinItem>
-            <td class="p-3">—</td>
-            <td class="p-3">—</td>
-            <td class="p-3">—</td>
-          </ng-template>
+
+          <!-- item principal -->
+          <td class="p-3 text-center">{{ medicamentoNombre(v) }}</td>
+          <td class="p-3">{{ cantidad(v) }}</td>
+
+          <!-- $ unitario y total en COP -->
+          <td class="p-3">{{ (valorUnitario(v) | currencyCol) }}</td>
           <td class="p-3 font-semibold text-green-600">
-            {{ v.valorTotal | currency:'USD':'symbol':'1.0-0' }}
+            {{ (v.valorTotal | currencyCol) }}
           </td>
         </tr>
-        <tr *ngIf="ventas.length === 0">
-          <td colspan="5" class="p-6 text-center text-gray-500">Sin ventas</td>
+
+        <tr *ngIf="!cargando() && ventas().length === 0">
+          <td colspan="6" class="p-6 text-center text-gray-500">
+            Sin ventas
+          </td>
         </tr>
       </tbody>
     </table>

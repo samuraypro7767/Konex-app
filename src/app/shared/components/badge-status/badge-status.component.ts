@@ -1,23 +1,35 @@
+// shared/components/badge-status/badge-status.component.ts
 import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
+
+type Estado = 'agotado' | 'bajo' | 'ok';
 
 @Component({
   selector: 'app-badge-status',
   standalone: true,
   imports: [CommonModule],
   template: `
-  <span
-    [ngClass]="{
-      'bg-blue-100 text-blue-700': type==='ok',
-      'bg-amber-100 text-amber-700': type==='warn',
-      'bg-rose-100 text-rose-700': type==='danger'
-    }"
-    class="text-xs px-3 py-1 rounded-full inline-block">
-    <ng-content></ng-content>
-  </span>
+    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium"
+          [ngClass]="clase">
+      {{ etiqueta }}
+    </span>
   `
 })
 export class BadgeStatusComponent {
-  /** 'ok' | 'warn' | 'danger' */
-  @Input() type: 'ok'|'warn'|'danger' = 'ok';
+  @Input() status: Estado = 'ok';
+
+  get etiqueta(): string {
+    switch (this.status) {
+      case 'agotado': return 'Agotado';
+      case 'bajo':    return 'Stock bajo';
+      default:        return 'Disponible';
+    }
+  }
+  get clase(): string {
+    switch (this.status) {
+      case 'agotado': return 'bg-red-100 text-red-800';
+      case 'bajo':    return 'bg-yellow-100 text-yellow-800';
+      default:        return 'bg-green-100 text-green-800';
+    }
+  }
 }

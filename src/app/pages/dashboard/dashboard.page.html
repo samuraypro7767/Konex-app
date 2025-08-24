@@ -1,0 +1,68 @@
+<!-- Header superior -->
+<header class="flex items-center justify-between px-6 py-3 shadow-sm bg-white">
+  <!-- Logo + texto -->
+  <div class="flex items-center gap-2">
+    <div class="w-8 h-8 flex items-center justify-center rounded-full bg-sky-600 text-white font-bold">
+      K
+    </div>
+    <div>
+      <div class="text-sky-700 font-bold">KONEX</div>
+      <div class="text-xs text-gray-500 -mt-1">Gestión de Medicamentos</div>
+    </div>
+  </div>
+
+  <!-- Botón + notificación -->
+  <div class="flex items-center gap-4">
+    <button
+      *ngIf="tab() === 'inventario'"
+      (click)="abrirDesdeHeader()"
+      class="px-4 py-2 rounded-xl bg-sky-600 text-white shadow hover:bg-sky-700">
+      + Agregar Medicamento
+    </button>
+    <button class="relative">
+      <span class="material-icons text-gray-600">notifications_none</span>
+    </button>
+  </div>
+</header>
+
+<!-- Contenido principal -->
+<div class="relative max-w-7xl mx-auto p-6 space-y-8">
+  <!-- Título centrado -->
+  <div class="text-center">
+    <h1 class="text-5xl font-semibold text-sky-700 tracking-tight">
+      Sistema de Gestión KONEX
+    </h1>
+    <p class="text-gray-500 mt-2">
+      Inventario y ventas de medicamentos para droguerías
+    </p>
+  </div>
+
+
+
+  <!-- Tabs -->
+  <div class="flex w-full justify-center">
+    <div class="bg-gray-100 rounded-full p-1 inline-flex shadow-inner">
+      <button
+        class="px-6 py-2 rounded-full transition"
+        [class.bg-white]="tab()==='inventario'"
+        [class.shadow]="tab()==='inventario'"
+        (click)="seleccionar('inventario')">
+        🧱 Inventario
+      </button>
+      <button
+        class="px-6 py-2 rounded-full transition"
+        [class.bg-white]="tab()==='ventas'"
+        [class.shadow]="tab()==='ventas'"
+        (click)="seleccionar('ventas')">
+        🛒 Ventas
+      </button>
+    </div>
+  </div>
+
+  <!-- Contenido -->
+  @if (tab()==='inventario') {
+    <app-inventario-page #inv [showHeader]="false"></app-inventario-page>
+  } @else {
+    <app-ventas-page [showHeader]="false"></app-ventas-page>
+  }
+</div>

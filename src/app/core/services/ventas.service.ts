@@ -24,7 +24,9 @@ export class VentasService {
     const params = new HttpParams().set('desde', d).set('hasta', h);
     return this.http.get<VentaResponse[]>(this.base, { params });
   }
-
+  listarTodas(): Observable<VentaResponse[]> {
+    return this.http.get<VentaResponse[]>(`${this.base}/all`);
+  }
   private ymd(v: string | Date): string {
     if (typeof v === 'string') return v;
     const pad = (n: number) => n.toString().padStart(2, '0');

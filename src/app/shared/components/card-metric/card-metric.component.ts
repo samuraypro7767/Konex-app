@@ -11,7 +11,7 @@ import { CommonModule } from '@angular/common';
       <ng-content select="[metric-icon]"></ng-content>
       {{ label }}
     </div>
-    <div class="text-3xl font-extrabold mt-1">{{ value }}</div>
+    <div class="text-3xl font-normal mt-1">{{ value }}</div>
     <div *ngIf="hint" class="text-xs text-gray-400 mt-1">{{ hint }}</div>
   </div>
   `
