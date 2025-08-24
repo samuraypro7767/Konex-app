@@ -2,6 +2,8 @@ import { Component, EventEmitter, Output, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 
+import { ButtonModule } from 'primeng/button';
+
 /**
  * Componente de filtros para la vista de Ventas.
  *
@@ -20,7 +22,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 @Component({
   selector: 'app-ventas-filtros',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, ButtonModule],
   templateUrl: './ventas-filtros.component.html',
 })
 export class VentasFiltrosComponent {

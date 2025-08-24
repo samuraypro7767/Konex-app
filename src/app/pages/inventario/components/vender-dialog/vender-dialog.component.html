@@ -1,36 +1,32 @@
-<!-- Overlay modal (bloquea la vista cuando open=true) -->
-<div *ngIf="open" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-  <!-- Contenedor del diálogo -->
-  <div class="bg-white rounded-2xl w-full max-w-xl p-6 space-y-5 shadow-xl">
-
-    <!-- ======= Header ======= -->
-    <div class="flex items-start justify-between">
-      <div>
-        <div class="text-xl font-bold flex items-center gap-2">
-          <!-- Ícono del título -->
-          <svg class="w-5 h-5 text-sky-600" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <path d="M2 4h2l3.6 7.59a2 2 0 001.8 1.16H17a2 2 0 001.94-1.5L21 6H6"/>
-          </svg>
-          Vender Medicamento
-        </div>
-        <div class="text-xs text-gray-500">Complete la información de la venta</div>
-      </div>
-      <!-- Botón cerrar -->
-      <button class="text-gray-500 hover:text-gray-700" (click)="cerrar.emit()" aria-label="Cerrar">✕</button>
+<p-dialog
+  [(visible)]="open"
+  [modal]="true"
+  [closable]="false"
+  [draggable]="false"
+  [resizable]="false"
+  [style]="{ width: '34rem' }"
+  (onHide)="cerrar.emit()"
+>
+  <!-- ======= Header ======= -->
+  <ng-template pTemplate="header">
+    <div class="flex items-center gap-2">
+      <i class="pi pi-shopping-cart text-sky-600"></i>
+      <span class="font-bold">Vender Medicamento</span>
     </div>
+  </ng-template>
 
-    <!-- ======= Tarjeta del producto seleccionado ======= -->
+  <!-- ======= Contenido ======= -->
+  <div class="space-y-4">
+    <!-- Producto -->
     <div class="rounded-2xl border p-4 space-y-1">
       <div class="text-lg font-semibold">{{ seleccionado?.nombre }}</div>
       <div class="text-sm text-gray-500">Laboratorio: {{ seleccionado?.laboratorioNombre }}</div>
 
-      <!-- Fila: precio unitario -->
       <div class="flex items-center justify-between text-sm mt-1">
         <div>Precio unitario:</div>
-        <div class="font-semibold">${{ seleccionado?.valorUnitario }}</div>
+        <div class="font-semibold">{{ seleccionado?.valorUnitario | number:'1.0-0' }}</div>
       </div>
 
-      <!-- Fila: stock disponible -->
       <div class="flex items-center justify-between text-sm">
         <div>Stock disponible:</div>
         <div class="font-semibold">
@@ -39,94 +35,69 @@
       </div>
     </div>
 
-    <!-- ======= Formulario de cantidad ======= -->
-    <!-- Usa Reactive Forms: formControlName="cantidad" con min=1 y max dinámico (stock) -->
+    <!-- Cantidad -->
     <form [formGroup]="form" class="space-y-3">
       <label class="text-sm text-gray-600">Cantidad a vender</label>
 
       <div class="flex items-center gap-2">
-        <!-- Botón -1 (respeta el mínimo) -->
         <button
           type="button"
-          class="px-3 py-2 rounded-xl border hover:bg-gray-50"
+          pButton
+          icon="pi pi-minus"
+          [text]="true"
           (click)="dec()"
           aria-label="Disminuir cantidad">
-          −
         </button>
 
-        <!-- Campo cantidad
-             - min fijo 1
-             - max dinámico (stock) via [attr.max]
-             - (input)/(blur) disparan recotización
-        -->
-        <input
-          type="number"
-          class="w-24 text-center rounded-xl border px-3 py-2"
+        <p-inputNumber
           formControlName="cantidad"
-          min="1"
-          [attr.max]="maxVendible || null"
-          (input)="onCotizar()"
-          (blur)="onCotizar()"
-          aria-label="Cantidad a vender">
+          [min]="1"
+          [max]="maxVendible" 
+          [showButtons]="false"
+          inputStyleClass="text-center w-24"
+          (onInput)="onCotizar()"
+          (onBlur)="onCotizar()"
+          ariaLabel="Cantidad a vender">
+        </p-inputNumber>
 
-        <!-- Botón +1 (respeta el máximo) -->
         <button
           type="button"
-          class="px-3 py-2 rounded-xl border hover:bg-gray-50"
+          pButton
+          icon="pi pi-plus"
+          [text]="true"
           (click)="inc()"
           aria-label="Aumentar cantidad">
-          +
         </button>
       </div>
 
-      <!-- Mensajes de error del control 'cantidad' -->
-      <div class="text-xs text-red-600" *ngIf="form.controls.cantidad.hasError('required')">
-        Ingrese una cantidad.
-      </div>
-      <div class="text-xs text-red-600" *ngIf="form.controls.cantidad.hasError('min')">
-        La cantidad mínima es 1.
-      </div>
-      <div class="text-xs text-red-600" *ngIf="form.controls.cantidad.hasError('max')">
-        No hay stock suficiente. Máximo {{ maxVendible }} unidades.
-      </div>
-      <div class="text-xs text-red-600" *ngIf="maxVendible === 0">
-        Medicamento agotado.
+      <!-- Mensajes -->
+      <p-message *ngIf="form.controls.cantidad.hasError('required')" severity="error" text="Ingrese una cantidad."></p-message>
+      <p-message *ngIf="form.controls.cantidad.hasError('min')" severity="error" text="La cantidad mínima es 1."></p-message>
+      <p-message *ngIf="form.controls.cantidad.hasError('max')" severity="warn" text="No hay stock suficiente."></p-message>
+      <p-message *ngIf="maxVendible === 0" severity="error" text="Medicamento agotado."></p-message>
+
+      <!-- Total -->
+      <div class="rounded-2xl p-4 text-white" style="background: linear-gradient(90deg, #0056a3, #06b6d4);">
+        <div class="text-sm opacity-90">Total a pagar:</div>
+        <div class="text-xl font-extrabold mt-1">{{ totalMostrar | number:'1.0-0' }}</div>
+        <div class="text-xs opacity-90">
+          {{ form.value.cantidad || 1 }} × {{ seleccionado?.valorUnitario | number:'1.0-0' }}
+        </div>
       </div>
     </form>
+  </div>
 
-    <!-- ======= Resumen / Total a pagar ======= -->
-    <!-- Muestra totalMostrar: prioriza cotización del backend; si no, cálculo local -->
-    <div
-      class="rounded-2xl p-4 text-white"
-      style="background: linear-gradient(90deg, #0056a3, #06b6d4);">
-      <div class="flex items-center gap-2 text-sm opacity-90">
-        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-          <path d="M3 4h18v2H3zM3 9h18v2H3zM3 14h18v2H3zM3 19h18v2H3z"/>
-        </svg>
-        Total a pagar:
-      </div>
-      <div class="text-xl font-extrabold mt-1">
-        ${{ totalMostrar }}
-        <!-- Tip: si quieres formato COP, usa un pipe aquí: {{ totalMostrar | currencyCol }} -->
-      </div>
-      <div class="text-xs opacity-90">
-        {{ form.value.cantidad || 1 }} × ${{ seleccionado?.valorUnitario }}
-      </div>
-    </div>
-
-    <!-- ======= Acciones ======= -->
+  <!-- ======= Footer / Acciones ======= -->
+  <ng-template pTemplate="footer">
     <div class="flex justify-end gap-2">
-      <button class="px-3 py-2 rounded-xl border" (click)="cerrar.emit()">Cancelar</button>
-
-      <!-- Confirmar
-           - Deshabilita si: cargando, sin stock o formulario inválido
-      -->
+      <button pButton label="Cancelar" [text]="true" (click)="cerrar.emit()"></button>
       <button
-        class="px-3 py-2 rounded-xl bg-sky-600 text-white disabled:opacity-60"
+        pButton
+        label="Confirmar Venta"
+        [loading]="loading"
         [disabled]="loading || maxVendible === 0 || form.invalid"
         (click)="onConfirmar()">
-        {{ loading ? 'Procesando...' : 'Confirmar Venta' }}
       </button>
     </div>
-  </div>
-</div>
+  </ng-template>
+</p-dialog>

@@ -2,6 +2,8 @@ import { Component, ViewChild, signal, HostListener, AfterViewInit } from '@angu
 import { CommonModule } from '@angular/common';
 import { InventarioPage } from '../inventario/inventario.page';
 import { VentasPage } from '../ventas/ventas.page';
+import { Toast } from 'primeng/toast';
+import { ConfirmDialog } from 'primeng/confirmdialog';
 
 /** Tipos de severidad para notificaciones del dashboard. */
 type NotiType = 'danger' | 'warning' | 'info';
@@ -39,7 +41,7 @@ interface Notificacion {
 @Component({
   standalone: true,
   selector: 'app-dashboard-page',
-  imports: [CommonModule, InventarioPage, VentasPage],
+  imports: [CommonModule, InventarioPage, VentasPage,Toast,ConfirmDialog],
   templateUrl: './dashboard.page.html',
 })
 export class DashboardPage implements AfterViewInit {
