@@ -28,12 +28,13 @@ import { ModalComponent } from '../../shared/components/modal/modal.component';
 import { MedicamentoFormComponent } from './components/medicamento-form/medicamento-form.component';
 import { VenderDialogComponent } from './components/vender-dialog/vender-dialog.component';
 import { CurrencyColPipe } from '../../shared/pipes/currency-col.pipe';
+import { MedicamentosTableComponent } from '../../shared/components/medicamentos-table/medicamentos-table.component';
 
 @Component({
   standalone: true,
   selector: 'app-inventario-page',
   imports: [
-    CommonModule, NgIf, NgFor, ReactiveFormsModule,
+    CommonModule, NgIf, NgFor, ReactiveFormsModule,MedicamentosTableComponent,
     // Reusables
     BadgeStatusComponent, CardMetricComponent, ModalComponent,
     MedicamentoFormComponent, VenderDialogComponent, CurrencyColPipe,

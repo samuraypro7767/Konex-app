@@ -8,6 +8,7 @@ import { VentaResponse } from '../../core/model/venta.model';
 import { CardMetricComponent } from '../../shared/components/card-metric/card-metric.component';
 import { CurrencyColPipe } from '../../shared/pipes/currency-col.pipe';
 import { VentasFiltrosComponent } from './components/ventas-filtros/ventas-filtros.component';
+import { VentasTableComponent } from '../../shared/components/ventas-table/ventas-table.component';
 
 @Component({
   standalone: true,
@@ -16,7 +17,8 @@ import { VentasFiltrosComponent } from './components/ventas-filtros/ventas-filtr
     CommonModule,
     CardMetricComponent,
     CurrencyColPipe,
-    VentasFiltrosComponent
+    VentasFiltrosComponent,
+    VentasTableComponent
   ],
   templateUrl: './ventas.page.html'
 })
