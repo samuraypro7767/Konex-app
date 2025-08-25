@@ -35,11 +35,7 @@
     </app-card-metric>
   </div>
 
-  <!-- Filtros por fuera (nativos, sin PrimeNG) -->
-  <app-ventas-filtros
-    (buscar)="onBuscar($event)"
-    (limpiar)="onLimpiar()">
-  </app-ventas-filtros>
+
 
   <!-- Estado de carga -->
   <div *ngIf="cargando()" class="rounded-xl border p-4 text-sm text-gray-500">
@@ -47,41 +43,12 @@
   </div>
 
   <!-- Tabla de resultados (misma tabla, se reemplazan filas con el filtro) -->
-  <div class="rounded-2xl border overflow-hidden">
-    <div class="flex justify-end p-2">
-      <span class="text-xs rounded-full border px-2 py-1 text-gray-600">
-        {{ totalVentas() }} ventas
-      </span>
-    </div>
+ <app-ventas-filtros (buscar)="onBuscar($event)" (limpiar)="onLimpiar()"></app-ventas-filtros>
 
-    <table class="min-w-full">
-      <thead class="bg-gray-50">
-        <tr class="text-left text-sm text-gray-500">
-          <th class="p-3">Fecha y Hora</th>
-          <th class="p-3 text-center">Medicamento</th>
-          <th class="p-3">Cantidad</th>
-          <th class="p-3">Precio Unitario</th>
-          <th class="p-3">Total</th>
-        </tr>
-      </thead>
+<app-ventas-table
+  [ventas]="ventas()"
+  [cargando]="cargando()"
+  [totalOverride]="totalVentas()">
+</app-ventas-table>
 
-      <tbody class="divide-y">
-        <tr *ngFor="let v of ventas(); trackBy: trackVenta" class="text-sm">
-          <td class="p-3 align-top w-40">
-            <div>{{ v.fechaHora | date:'dd/MM/yyyy' }}</div>
-            <div class="text-xs text-gray-500">{{ v.fechaHora | date:'HH:mm' }}</div>
-          </td>
-
-          <td class="p-3 text-center">{{ medicamentoNombre(v) }}</td>
-          <td class="p-3">{{ cantidad(v) }}</td>
-          <td class="p-3">{{ (valorUnitario(v) | currencyCol) }}</td>
-          <td class="p-3 font-semibold text-green-600">{{ (v.valorTotal | currencyCol) }}</td>
-        </tr>
-
-        <tr *ngIf="!cargando() && ventas().length === 0">
-          <td colspan="5" class="p-6 text-center text-gray-500">Sin ventas</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
 </div>
