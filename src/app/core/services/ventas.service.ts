@@ -1,20 +1,29 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, map } from 'rxjs';
 import { environment } from '../../../environment/environment';
 import { VentaCreateRequest, VentaResponse } from '../model/venta.model';
 
+export interface Page<T> {
+  content: T[];
+  number: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  first: boolean;
+  last: boolean;
+}
+
+export type SortParam = `${string},asc` | `${string},desc`;
+
+export interface PageReq {
+  page?: number;          // 0-based
+  size?: number;          // por defecto 10/20
+  sort?: SortParam[];     // ej: ['fechaHora,desc','id,asc']
+}
+
 /**
  * Servicio de acceso a los endpoints de **Ventas**.
- *
- * Responsabilidades:
- * - Crear y obtener ventas.
- * - Listar ventas por rango de fechas (día a día).
- * - Listar todas las ventas.
- *
- * Requiere en `environment`:
- * - `apiBase`: URL base de la API (p. ej. `http://localhost:8080/api`)
- * - `ventas`: path del recurso (p. ej. `/ventas`)
  */
 @Injectable({ providedIn: 'root' })
 export class VentasService {
@@ -23,65 +32,64 @@ export class VentasService {
 
   constructor(private http: HttpClient) {}
 
-  /**
-   * Crea una venta.
-   * @param req Datos de la venta (ID de medicamento y cantidad).
-   * @returns `Observable<VentaResponse>` con la venta creada.
-   */
+  /** Crea una venta. */
   crear(req: VentaCreateRequest): Observable<VentaResponse> {
     return this.http.post<VentaResponse>(this.base, req);
   }
 
-  /**
-   * Obtiene una venta por su ID.
-   * @param id Identificador de la venta.
-   * @returns `Observable<VentaResponse>`
-   */
+  /** Obtiene una venta por su ID. */
   obtener(id: number): Observable<VentaResponse> {
     return this.http.get<VentaResponse>(`${this.base}/${id}`);
   }
 
-  /**
-   * Lista ventas dentro de un rango de fechas (inclusive).
-   *
-   * @param desde Fecha inicial (string `yyyy-MM-dd` o `Date`).
-   * @param hasta Fecha final (string `yyyy-MM-dd` o `Date`).
-   * @returns `Observable<VentaResponse[]>`
-   *
-   * @remarks
-   * - El backend espera formato **`yyyy-MM-dd`** en ambos parámetros.
-   * - Si pasas `Date`, se formatea con {@link ymd}.
-   * - Endpoint esperado: `GET /ventas?desde=YYYY-MM-DD&hasta=YYYY-MM-DD`
-   */
-  listarPorRango(desde: string | Date, hasta: string | Date): Observable<VentaResponse[]> {
-    const d = this.ymd(desde);
-    const h = this.ymd(hasta);
-    const params = new HttpParams().set('desde', d).set('hasta', h);
-    return this.http.get<VentaResponse[]>(this.base, { params });
-  }
-
-  /**
-   * Lista **todas** las ventas sin filtro de fechas.
-   * @returns `Observable<VentaResponse[]>`
-   *
-   * @remarks
-   * Endpoint esperado: `GET /ventas/all`
-   */
-  listarTodas(): Observable<VentaResponse[]> {
-    return this.http.get<VentaResponse[]>(`${this.base}/all`);
-  }
-
-  /**
-   * Formatea una fecha a `yyyy-MM-dd`. Si ya es string, la retorna tal cual.
-   * @param v Fecha como `string` o `Date`.
-   * @returns Cadena en formato `yyyy-MM-dd`.
-   *
-   * @example
-   * ymd(new Date(2025, 7, 24)) // "2025-08-24"
-   */
+  /** ===== Helpers ===== */
   private ymd(v: string | Date): string {
     if (typeof v === 'string') return v;
     const pad = (n: number) => n.toString().padStart(2, '0');
     return `${v.getFullYear()}-${pad(v.getMonth() + 1)}-${pad(v.getDate())}`;
+  }
+
+  private buildParams(p?: PageReq, extra?: Record<string, string>): HttpParams {
+    let params = new HttpParams();
+    if (p?.page != null) params = params.set('page', String(p.page));
+    if (p?.size != null) params = params.set('size', String(p.size));
+    if (p?.sort?.length) p.sort.forEach(s => (params = params.append('sort', s)));
+    if (extra) Object.entries(extra).forEach(([k, v]) => (params = params.set(k, v)));
+    return params;
+  }
+
+  /** ===== Endpoints paginados ===== */
+
+  /** GET /ventas/all -> Page<VentaResponse> (todas) */
+  listarTodasPaged(
+    req: PageReq = { page: 0, size: 10, sort: ['fechaHora,desc'] }
+  ): Observable<Page<VentaResponse>> {
+    const params = this.buildParams(req);
+    return this.http.get<Page<VentaResponse>>(`${this.base}/all`, { params });
+  }
+
+  /** GET /ventas?desde&hasta&[page,size,sort...] -> Page<VentaResponse> */
+  listarPorRangoPaged(
+    desde: string | Date,
+    hasta: string | Date,
+    req: PageReq = { page: 0, size: 10, sort: ['fechaHora,desc'] }
+  ): Observable<Page<VentaResponse>> {
+    const params = this.buildParams(req, {
+      desde: this.ymd(desde),
+      hasta: this.ymd(hasta),
+    });
+    return this.http.get<Page<VentaResponse>>(this.base, { params });
+  }
+
+  /** ===== Wrappers compat (devuelven solo el arreglo) ===== */
+
+  /** Mantiene la firma original: Observable<VentaResponse[]> */
+  listarTodas(): Observable<VentaResponse[]> {
+    return this.listarTodasPaged().pipe(map(p => p.content));
+  }
+
+  /** Mantiene la firma original: Observable<VentaResponse[]> */
+  listarPorRango(desde: string | Date, hasta: string | Date): Observable<VentaResponse[]> {
+    return this.listarPorRangoPaged(desde, hasta).pipe(map(p => p.content));
   }
 }

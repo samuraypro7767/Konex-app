@@ -1,1 +1,17 @@
-<router-outlet></router-outlet>
+<!-- app.component.html (o app.html) -->
+<!-- ~70% de opacidad -->
+<ngx-spinner
+  name="httpSpinner"
+  type="ball-spin-clockwise"
+  [fullScreen]="true"
+  size="medium"
+  bdColor="rgba(0,0,0,0.7)"
+  color="#0ea5e9"
+  [zIndex]="9999"
+  [template]="spinnerHtml">
+</ngx-spinner>
+
+
+
+
+<router-outlet/>
