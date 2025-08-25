@@ -1,8 +1,9 @@
 import { Component, Input, inject, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
-import { VentasService } from '../../core/services/ventas.service';
+import { VentasService, Page as PageResp, PageReq } from '../../core/services/ventas.service';
 import { VentaResponse } from '../../core/model/venta.model';
+import { NgxSpinnerModule } from 'ngx-spinner';
 
 // Reutilizables
 import { CardMetricComponent } from '../../shared/components/card-metric/card-metric.component';
@@ -18,7 +19,8 @@ import { VentasTableComponent } from '../../shared/components/ventas-table/venta
     CardMetricComponent,
     CurrencyColPipe,
     VentasFiltrosComponent,
-    VentasTableComponent
+    VentasTableComponent,
+    NgxSpinnerModule,
   ],
   templateUrl: './ventas.page.html'
 })
@@ -27,33 +29,54 @@ export class VentasPage implements OnInit {
 
   private service = inject(VentasService);
 
+  // estado UI
   cargando = signal(false);
 
-  /** Siempre guardamos un **array** aquí (nunca Page ni objeto). */
+  // datos visibles (solo la página actual)
   ventas = signal<VentaResponse[]>([]);
 
-  // ================== KPIs ==================
-  totalVentas = computed(() => this.ventas().length);
+  // paginación
+  page = signal(0);   // 0-based
+  size = signal(10);
+  total = signal(0);
 
+  // filtro actual (null = todas)
+  filtro = signal<{ desde: string; hasta: string } | null>(null);
+
+  // ================== KPIs (sobre la página actual) ==================
+  totalVentas = computed(() => this.ventas().length);
   ingresosTot = computed(() =>
     this.ventas().reduce((acc, v) => acc + this.toNumber(v?.valorTotal), 0)
   );
-
   promedioVenta = computed(() =>
     this.totalVentas() ? Math.round(this.ingresosTot() / this.totalVentas()) : 0
   );
 
   // ================== Ciclo de vida ==================
   ngOnInit(): void {
-    this.cargarTodas();
+    this.cargarPagina();
   }
 
   // ================== Carga de datos ==================
-  private cargarTodas() {
+  private cargarPagina() {
     this.cargando.set(true);
-    this.service.listarTodas().subscribe({
-      next: (res) => this.ventas.set(this.normalizeVentas(res)),
-      error: () => this.ventas.set([]),
+
+    // request paginado (sin readonly en sort)
+    const req: PageReq = { page: this.page(), size: this.size(), sort: ['fechaHora,desc'] };
+
+    const obs = this.filtro()
+      ? this.service.listarPorRangoPaged(this.filtro()!.desde, this.filtro()!.hasta, req)
+      : this.service.listarTodasPaged(req);
+
+    obs.subscribe({
+      next: (p: PageResp<VentaResponse>) => {
+        this.ventas.set(p.content ?? []);
+        this.total.set(p.totalElements ?? 0);
+      },
+      error: () => {
+        this.ventas.set([]);
+        this.total.set(0);
+      },
       complete: () => this.cargando.set(false),
     });
   }
@@ -61,30 +84,24 @@ export class VentasPage implements OnInit {
   /** Buscar por rango y reemplazar filas de la misma tabla */
   onBuscar(rango: { desde: string; hasta: string }) {
     if (!rango?.desde || !rango?.hasta) return;
-    this.cargando.set(true);
-    this.service.listarPorRango(rango.desde, rango.hasta).subscribe({
-      next: (res) => this.ventas.set(this.normalizeVentas(res)),
-      error: () => this.ventas.set([]),
-      complete: () => this.cargando.set(false),
-    });
+    this.filtro.set({ desde: rango.desde, hasta: rango.hasta });
+    this.page.set(0); // reset a primera página
+    this.cargarPagina();
   }
 
   /** Limpiar filtros = volver a cargar todo */
   onLimpiar() {
-    this.cargarTodas();
+    this.filtro.set(null);
+    this.page.set(0);
+    this.cargarPagina();
   }
 
-  // ================== Helpers tabla ==================
-  medicamentoNombre(v: VentaResponse): string {
-    return v?.items?.[0]?.medicamentoNombre ?? '—';
+  /** Evento del paginador del componente de tabla */
+  onPageChange(e: { page: number; size: number }) {
+    this.page.set(e.page);
+    this.size.set(e.size);
+    this.cargarPagina();
   }
-  cantidad(v: VentaResponse): number {
-    return v?.items?.[0]?.cantidad ?? 0;
-  }
-  valorUnitario(v: VentaResponse): number {
-    return this.toNumber(v?.items?.[0]?.valorUnitario);
-  }
-  trackVenta = (_: number, item: VentaResponse) => (item as any)?.id ?? _;
 
   // ================== Utilidades ==================
   /** Convierte valores monetarios que puedan venir como string/number a number seguro. */
@@ -97,21 +114,5 @@ export class VentasPage implements OnInit {
       return isNaN(n) ? 0 : n;
     }
     return 0;
-  }
-
-  /**
-   * Acepta distintas formas de respuesta del backend y SIEMPRE devuelve un array.
-   * - Array directo
-   * - Page-like { content: [...] }
-   * - Wrapper { data: [...] }
-   * - { items: [...] } (por si acaso)
-   * En cualquier otro caso: [].
-   */
-  private normalizeVentas(res: any): VentaResponse[] {
-    if (Array.isArray(res)) return res as VentaResponse[];
-    if (Array.isArray(res?.content)) return res.content as VentaResponse[];
-    if (Array.isArray(res?.data)) return res.data as VentaResponse[];
-    if (Array.isArray(res?.items)) return res.items as VentaResponse[];
-    return [];
   }
 }

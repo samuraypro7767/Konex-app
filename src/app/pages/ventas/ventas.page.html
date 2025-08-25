@@ -1,3 +1,4 @@
+
 <div class="max-w-7xl mx-auto p-4 space-y-6">
   @if (showHeader) {
     <div class="flex items-center justify-between">
@@ -48,7 +49,10 @@
 <app-ventas-table
   [ventas]="ventas()"
   [cargando]="cargando()"
-  [totalOverride]="totalVentas()">
+  [total]="total()"
+  [page]="page()"
+  [size]="size()"
+  (pageChange)="onPageChange($event)">
 </app-ventas-table>
 
 </div>
